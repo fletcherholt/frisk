@@ -10,6 +10,7 @@ import { isLowSignalPath } from "./util";
 import { streamTar, type FileKind, type TarStats } from "./tar";
 import { scanSecretsText } from "./scanners/secrets";
 import { scanPatternsText } from "./scanners/patterns";
+import { scanIacText } from "./scanners/iac";
 import { parseManifest, isManifest, queryOsv, type Dep } from "./scanners/deps";
 import { scanTyposquat } from "./scanners/typosquat";
 import { scanScorecard } from "./scanners/scorecard";
@@ -93,6 +94,7 @@ export async function runScan(
       const text = DECODER.decode(f.bytes);
       findings.push(...scanSecretsText(f.name, text));
       findings.push(...scanPatternsText(f.name, text));
+      findings.push(...scanIacText(f.name, text));
       if (isManifest(f.name)) deps.push(...parseManifest(f.name, text));
     }
   }
