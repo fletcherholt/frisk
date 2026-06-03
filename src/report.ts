@@ -110,20 +110,13 @@ button:hover{filter:brightness(1.08)}
 
 .clean{text-align:center;padding:40px 0;color:var(--green);font-size:17px}
 
-/* scanning interstitial: two counter-rotating gradient rings round the logo */
-.scanner{position:relative;width:132px;height:132px;margin:0 auto;display:flex;align-items:center;justify-content:center}
-.ring{position:absolute;inset:0;border-radius:50%;
-  background:conic-gradient(from 0deg,transparent 0 55%,var(--blue) 82%,var(--mauve) 100%);
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 5px));
-  mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 5px));
-  animation:spin 1s linear infinite}
-.ring2{inset:20px;
-  background:conic-gradient(from 180deg,transparent 0 55%,var(--mauve) 82%,var(--green) 100%);
-  animation:spin 1.5s linear infinite reverse}
-@keyframes spin{to{transform:rotate(1turn)}}
-.scan-logo{position:relative;z-index:1;font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--text);animation:pulse 1.2s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:.8;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
-.scan-label{margin-top:26px;text-align:center;color:var(--subtext0);font-size:15px;line-height:1.7}
+/* scanning interstitial loader */
+.loader{display:block;width:calc(100px - 24px);height:50px;margin:0 auto;position:relative;animation:flippx 2s infinite linear}
+.loader:before{content:"";position:absolute;inset:0;margin:auto;width:20px;height:20px;border-radius:50%;background:var(--text);transform-origin:-24px 50%;animation:spin 1s infinite linear}
+.loader:after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--text);width:48px;height:48px;border-radius:50%}
+@keyframes flippx{0%,49%{transform:scaleX(1)}50%,100%{transform:scaleX(-1)}}
+@keyframes spin{100%{transform:rotate(360deg)}}
+.scan-label{margin-top:30px;text-align:center;color:var(--subtext0);font-size:15px;line-height:1.7}
 .scan-label b{color:var(--text);font-weight:600}
 .dim{color:var(--overlay);font-size:13px}
 .dots::after{content:"";animation:dots 1.4s steps(1,end) infinite}
@@ -240,11 +233,7 @@ export function scanningPage(owner: string, repo: string): string {
   const label = `scanning <b>${escapeHtml(owner)}/${escapeHtml(repo)}</b><span class="dots"></span>`;
   const inner = `
 <div class="hero">
-  <div class="scanner">
-    <span class="ring"></span>
-    <span class="ring ring2"></span>
-    <span class="scan-logo">frisk</span>
-  </div>
+  <span class="loader"></span>
   <div class="scan-label" id="lbl">${label}</div>
 </div>
 <script>
@@ -282,11 +271,7 @@ export function scanningPage(owner: string, repo: string): string {
 export function busyPage(owner: string, repo: string): string {
   const inner = `
 <div class="hero">
-  <div class="scanner">
-    <span class="ring"></span>
-    <span class="ring ring2"></span>
-    <span class="scan-logo">frisk</span>
-  </div>
+  <span class="loader"></span>
   <div class="scan-label">frisk is busy right now<br><span class="dim">lots of people are scanning ${escapeHtml(owner)}/${escapeHtml(repo)} and others. this page retries automatically.</span></div>
 </div>
 <script>setTimeout(function(){location.reload();}, 6000+Math.floor(Math.random()*5000));</script>`;
