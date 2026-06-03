@@ -2,12 +2,17 @@ import type { Env, Finding } from "../types";
 import type { RepoFile } from "../fetchRepo";
 
 // Executable/library formats worth a VirusTotal lookup.
-const SCAN_BINARY_EXT =
+export const SCAN_BINARY_EXT =
   /\.(exe|dll|so|dylib|bin|node|wasm|msi|apk|jar|deb|rpm|dmg|pkg|scr|com|elf)$/i;
 
-const MAX_BINARIES = 10; // per scan, to respect VT free quota (4/min, 500/day)
+export const MAX_BINARIES = 10; // per scan, to respect VT free quota (4/min, 500/day)
 const DAILY_CAP = 480;
 const VT_CACHE_TTL = 7 * 86400;
+
+export interface BinTarget {
+  path: string;
+  hash: string;
+}
 
 interface VtResult {
   found: boolean;
@@ -15,7 +20,7 @@ interface VtResult {
   total: number;
 }
 
-async function sha256(bytes: Uint8Array): Promise<string> {
+export async function sha256(bytes: Uint8Array): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return [...new Uint8Array(digest)]
     .map((b) => b.toString(16).padStart(2, "0"))
@@ -71,39 +76,40 @@ async function lookup(hash: string, env: Env): Promise<VtResult | null> {
   return result;
 }
 
-export async function scanBinaries(
-  files: RepoFile[],
+/**
+ * Look up already-hashed binaries on VirusTotal. `totalSeen` is the number of
+ * binaries the scan encountered (may exceed targets.length once capped).
+ */
+export async function lookupBinaries(
+  targets: BinTarget[],
+  totalSeen: number,
   env: Env,
   notes: string[],
 ): Promise<Finding[]> {
-  const bins = files.filter((f) => f.isBinary && SCAN_BINARY_EXT.test(f.path));
-  if (bins.length === 0) return [];
+  if (totalSeen === 0) return [];
 
   if (!env.VT_API_KEY) {
     notes.push(
-      `${bins.length} binary file(s) found but VirusTotal is not configured, so they were not checked.`,
+      `${totalSeen} binary file(s) found but VirusTotal is not configured, so they were not checked.`,
     );
     return [];
   }
-
-  const findings: Finding[] = [];
-  const targets = bins.slice(0, MAX_BINARIES);
-  if (bins.length > MAX_BINARIES) {
+  if (totalSeen > targets.length) {
     notes.push(
-      `Only the first ${MAX_BINARIES} of ${bins.length} binaries were checked against VirusTotal (quota limit).`,
+      `Only the first ${targets.length} of ${totalSeen} binaries were checked against VirusTotal (quota limit).`,
     );
   }
 
-  for (const f of targets) {
-    const hash = await sha256(f.bytes);
+  const findings: Finding[] = [];
+  for (const { path, hash } of targets) {
     const vt = await lookup(hash, env);
     if (vt === null) {
-      notes.push(`Could not check ${f.path} (VirusTotal quota/error).`);
+      notes.push(`Could not check ${path} (VirusTotal quota/error).`);
       findings.push({
         severity: "info",
         category: "binary",
         title: "Binary not checked",
-        file: f.path,
+        file: path,
         detail: `SHA-256 ${hash}. VirusTotal lookup unavailable.`,
       });
       continue;
@@ -113,7 +119,7 @@ export async function scanBinaries(
         severity: vt.malicious >= 5 ? "critical" : "high",
         category: "binary",
         title: `Malicious binary (${vt.malicious}/${vt.total} engines)`,
-        file: f.path,
+        file: path,
         detail: `VirusTotal flagged this file. SHA-256 ${hash}. https://www.virustotal.com/gui/file/${hash}`,
       });
     } else if (vt.found) {
@@ -121,7 +127,7 @@ export async function scanBinaries(
         severity: "info",
         category: "binary",
         title: "Binary known-clean on VirusTotal",
-        file: f.path,
+        file: path,
         detail: `0/${vt.total} engines flagged it. SHA-256 ${hash}.`,
       });
     } else {
@@ -129,10 +135,23 @@ export async function scanBinaries(
         severity: "low",
         category: "binary",
         title: "Unknown binary (not in VirusTotal)",
-        file: f.path,
+        file: path,
         detail: `VirusTotal has never seen this file. Committed binaries of unknown provenance are a risk. SHA-256 ${hash}.`,
       });
     }
   }
   return findings;
+}
+
+export async function scanBinaries(
+  files: RepoFile[],
+  env: Env,
+  notes: string[],
+): Promise<Finding[]> {
+  const bins = files.filter((f) => f.isBinary && SCAN_BINARY_EXT.test(f.path));
+  const targets: BinTarget[] = [];
+  for (const f of bins.slice(0, MAX_BINARIES)) {
+    targets.push({ path: f.path, hash: await sha256(f.bytes) });
+  }
+  return lookupBinaries(targets, bins.length, env, notes);
 }

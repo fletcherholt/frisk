@@ -35,55 +35,55 @@ const CI_BUILD = /(^|\/)\.github\/|(^|\/)Dockerfile/i;
 // package.json install-hook check (these run automatically on `npm install`).
 const INSTALL_HOOKS = /"(pre|post)?install"\s*:/g;
 
-export function scanPatterns(files: RepoFile[]): Finding[] {
+export function scanPatternsText(path: string, text: string): Finding[] {
   const findings: Finding[] = [];
-  for (const f of files) {
-    if (!f.text) continue;
-    const text = f.text;
-    const soft = isLowSignalPath(f.path) || CI_BUILD.test(f.path);
+  const soft = isLowSignalPath(path) || CI_BUILD.test(path);
 
-    for (const rule of RULES) {
-      // In docs, examples, tests and CI, context sensitive rules are just
-      // describing or running normal commands. Skip them entirely.
-      if (rule.soft && soft) continue;
-      rule.re.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      let perRule = 0;
-      const seen = new Set<number>();
-      while ((m = rule.re.exec(text)) !== null) {
-        if (m.index === rule.re.lastIndex) rule.re.lastIndex++;
-        const line = lineOf(text, m.index);
-        if (seen.has(line)) continue;
-        seen.add(line);
-        findings.push({
-          severity: rule.severity,
-          category: "pattern",
-          title: rule.title,
-          file: f.path,
-          line,
-          detail: rule.detail,
-          snippet: snippetAt(text, m.index),
-        });
-        if (++perRule >= 15) break;
-      }
+  for (const rule of RULES) {
+    // In docs, examples, tests and CI, context sensitive rules are just
+    // describing or running normal commands. Skip them entirely.
+    if (rule.soft && soft) continue;
+    rule.re.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    let perRule = 0;
+    const seen = new Set<number>();
+    while ((m = rule.re.exec(text)) !== null) {
+      if (m.index === rule.re.lastIndex) rule.re.lastIndex++;
+      const line = lineOf(text, m.index);
+      if (seen.has(line)) continue;
+      seen.add(line);
+      findings.push({
+        severity: rule.severity,
+        category: "pattern",
+        title: rule.title,
+        file: path,
+        line,
+        detail: rule.detail,
+        snippet: snippetAt(text, m.index),
+      });
+      if (++perRule >= 15) break;
     }
+  }
 
-    // Install hooks only matter in package.json.
-    if (/(^|\/)package\.json$/.test(f.path)) {
-      INSTALL_HOOKS.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      while ((m = INSTALL_HOOKS.exec(text)) !== null) {
-        findings.push({
-          severity: soft ? "low" : "medium",
-          category: "pattern",
-          title: "npm install lifecycle hook",
-          file: f.path,
-          line: lineOf(text, m.index),
-          detail: "preinstall and postinstall scripts run automatically on `npm install`, a common supply chain vector. Review the command.",
-          snippet: snippetAt(text, m.index),
-        });
-      }
+  // Install hooks only matter in package.json.
+  if (/(^|\/)package\.json$/.test(path)) {
+    INSTALL_HOOKS.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = INSTALL_HOOKS.exec(text)) !== null) {
+      findings.push({
+        severity: soft ? "low" : "medium",
+        category: "pattern",
+        title: "npm install lifecycle hook",
+        file: path,
+        line: lineOf(text, m.index),
+        detail: "preinstall and postinstall scripts run automatically on `npm install`, a common supply chain vector. Review the command.",
+        snippet: snippetAt(text, m.index),
+      });
     }
   }
   return findings;
+}
+
+export function scanPatterns(files: RepoFile[]): Finding[] {
+  return files.flatMap((f) => (f.text ? scanPatternsText(f.path, f.text) : []));
 }

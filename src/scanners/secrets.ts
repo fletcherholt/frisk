@@ -29,40 +29,40 @@ const RULES: Rule[] = [
   { id: "generic-secret", title: "Hardcoded credential", severity: "medium", re: /(?:api[_-]?key|secret|token|passwd|password|client[_-]?secret)\s*[:=]\s*['"]([0-9A-Za-z\-_./+]{16,64})['"]/gi, minEntropy: 3.5, group: 1 },
 ];
 
-export function scanSecrets(files: RepoFile[]): Finding[] {
+export function scanSecretsText(path: string, text: string): Finding[] {
   const findings: Finding[] = [];
-  for (const f of files) {
-    if (!f.text) continue;
-    const text = f.text;
-    const dampen = isLowSignalPath(f.path);
-    const seen = new Set<string>();
-    for (const rule of RULES) {
-      rule.re.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      let perRule = 0;
-      while ((m = rule.re.exec(text)) !== null) {
-        if (m.index === rule.re.lastIndex) rule.re.lastIndex++; // zero-width guard
-        const probe = m[rule.group ?? 0] ?? m[0];
-        if (rule.minEntropy && shannon(probe) < rule.minEntropy) continue;
-        const line = lineOf(text, m.index);
-        const key = `${rule.id}:${line}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        let severity = rule.severity;
-        if (dampen)
-          severity = severity === "critical" ? "medium" : severity === "high" ? "low" : "info";
-        findings.push({
-          severity,
-          category: "secret",
-          title: dampen ? `${rule.title} (in docs, tests or examples)` : rule.title,
-          file: f.path,
-          line,
-          detail: "Possible credential committed to the repository.",
-          snippet: snippetAt(text, m.index),
-        });
-        if (++perRule >= 25) break; // cap noisy files
-      }
+  const dampen = isLowSignalPath(path);
+  const seen = new Set<string>();
+  for (const rule of RULES) {
+    rule.re.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    let perRule = 0;
+    while ((m = rule.re.exec(text)) !== null) {
+      if (m.index === rule.re.lastIndex) rule.re.lastIndex++; // zero-width guard
+      const probe = m[rule.group ?? 0] ?? m[0];
+      if (rule.minEntropy && shannon(probe) < rule.minEntropy) continue;
+      const line = lineOf(text, m.index);
+      const key = `${rule.id}:${line}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      let severity = rule.severity;
+      if (dampen)
+        severity = severity === "critical" ? "medium" : severity === "high" ? "low" : "info";
+      findings.push({
+        severity,
+        category: "secret",
+        title: dampen ? `${rule.title} (in docs, tests or examples)` : rule.title,
+        file: path,
+        line,
+        detail: "Possible credential committed to the repository.",
+        snippet: snippetAt(text, m.index),
+      });
+      if (++perRule >= 25) break; // cap noisy files
     }
   }
   return findings;
+}
+
+export function scanSecrets(files: RepoFile[]): Finding[] {
+  return files.flatMap((f) => (f.text ? scanSecretsText(f.path, f.text) : []));
 }

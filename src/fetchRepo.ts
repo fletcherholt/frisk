@@ -1,26 +1,19 @@
-import { parseTar } from "nanotar";
 import type { Env } from "./types";
 import { HttpError } from "./util";
 
+// Kept for the array-based scanner wrappers and unit tests. The streaming scan
+// path does not build these; it processes one file at a time.
 export interface RepoFile {
   path: string;
   bytes: Uint8Array;
-  text: string | null; // null for binaries / oversized files
+  text: string | null;
   isBinary: boolean;
 }
 
-export interface FetchResult {
-  files: RepoFile[];
-  truncated: boolean;
-  sizeBytes: number;
-}
-
-const MAX_FILES = 2000;
-const MAX_TOTAL = 50 * 1024 * 1024; // 50 MB decompressed
-const MAX_DECODE = 1024 * 1024; // don't TextDecode files larger than 1 MB
+export const MAX_DECODE = 2 * 1024 * 1024; // don't decode text files larger than 2 MB
 
 // Extensions we treat as binary (never decode to text).
-const BINARY_EXT =
+export const BINARY_EXT =
   /\.(exe|dll|so|dylib|bin|o|a|node|wasm|class|jar|apk|deb|rpm|msi|dmg|pkg|zip|gz|tgz|7z|rar|png|jpe?g|gif|webp|ico|bmp|pdf|mp4|mov|mp3|wav|woff2?|ttf|otf|eot)$/i;
 
 function ghHeaders(env: Env): HeadersInit {
@@ -62,70 +55,24 @@ export async function resolveSha(
   return sha;
 }
 
-async function gunzip(buf: ArrayBuffer): Promise<Uint8Array> {
-  const stream = new Response(buf).body!.pipeThrough(
-    new DecompressionStream("gzip"),
-  );
-  return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-
-/** Strip the leading `repo-sha/` path segment GitHub adds to tarball entries. */
-function stripTop(name: string): string {
-  const i = name.indexOf("/");
-  return i === -1 ? "" : name.slice(i + 1);
-}
-
-/** Heuristic: a NUL byte in the first chunk means binary. */
-function looksBinary(bytes: Uint8Array): boolean {
+/** A NUL byte in the first chunk means the content is binary, not text. */
+export function looksBinary(bytes: Uint8Array): boolean {
   const n = Math.min(bytes.length, 8000);
   for (let i = 0; i < n; i++) if (bytes[i] === 0) return true;
   return false;
 }
 
-export async function fetchRepo(
+/** Fetch the repo tarball and return its gzip-decompressed byte stream. */
+export async function openTarball(
   owner: string,
   repo: string,
   sha: string,
-  env: Env,
-): Promise<FetchResult> {
+): Promise<ReadableStream<Uint8Array>> {
   const r = await fetch(
     `https://codeload.github.com/${owner}/${repo}/tar.gz/${sha}`,
     { headers: { "User-Agent": "frisk" } },
   );
   if (!r.ok) throw new HttpError(502, `Tarball download failed (${r.status}).`);
-
-  // Guard against monster repos that would exhaust Worker memory once gunzipped.
-  const compressed = Number(r.headers.get("content-length") ?? 0);
-  if (compressed > 80 * 1024 * 1024)
-    throw new HttpError(413, "Repository is too large to scan.");
-
-  const tar = await gunzip(await r.arrayBuffer());
-  const entries = parseTar(tar);
-
-  const files: RepoFile[] = [];
-  let total = 0;
-  let truncated = false;
-
-  for (const e of entries) {
-    if (e.type !== "file" || !e.data) continue;
-    const path = stripTop(e.name);
-    if (!path) continue;
-
-    const data = e.data instanceof Uint8Array ? e.data : new Uint8Array(e.data);
-    total += data.length;
-    if (files.length >= MAX_FILES || total > MAX_TOTAL) {
-      truncated = true;
-      break;
-    }
-
-    const isBinary = BINARY_EXT.test(path) || looksBinary(data);
-    const text =
-      !isBinary && data.length <= MAX_DECODE
-        ? new TextDecoder().decode(data)
-        : null;
-
-    files.push({ path, bytes: data, text, isBinary });
-  }
-
-  return { files, truncated, sizeBytes: total };
+  if (!r.body) throw new HttpError(502, "Empty tarball response.");
+  return r.body.pipeThrough(new DecompressionStream("gzip"));
 }

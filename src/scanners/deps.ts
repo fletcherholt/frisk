@@ -2,7 +2,7 @@ import type { Finding } from "../types";
 import type { RepoFile } from "../fetchRepo";
 import { isLowSignalPath } from "../util";
 
-interface Dep {
+export interface Dep {
   name: string;
   ecosystem: string;
   version: string;
@@ -76,29 +76,32 @@ function parseCargo(text: string, file: string): Dep[] {
   return out;
 }
 
-function collectDeps(files: RepoFile[]): Dep[] {
-  const deps: Dep[] = [];
-  for (const f of files) {
-    if (!f.text) continue;
-    if (/(^|\/)package\.json$/.test(f.path)) deps.push(...parsePackageJson(f.text, f.path));
-    else if (/(^|\/)requirements[\w.-]*\.txt$/.test(f.path)) deps.push(...parseRequirements(f.text, f.path));
-    else if (/(^|\/)go\.mod$/.test(f.path)) deps.push(...parseGoMod(f.text, f.path));
-    else if (/(^|\/)Cargo\.toml$/.test(f.path)) deps.push(...parseCargo(f.text, f.path));
-  }
-  // Dedupe identical packages (same name, version and ecosystem) so a dep
-  // listed in several manifests or sections is only reported once.
-  const seen = new Set<string>();
-  const unique = deps.filter((d) => {
-    const key = `${d.ecosystem}:${d.name}@${d.version}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-  return unique.slice(0, MAX_QUERIES);
+/** Parse one manifest file into its declared dependencies. */
+export function parseManifest(path: string, text: string): Dep[] {
+  if (/(^|\/)package\.json$/.test(path)) return parsePackageJson(text, path);
+  if (/(^|\/)requirements[\w.-]*\.txt$/.test(path)) return parseRequirements(text, path);
+  if (/(^|\/)go\.mod$/.test(path)) return parseGoMod(text, path);
+  if (/(^|\/)Cargo\.toml$/.test(path)) return parseCargo(text, path);
+  return [];
 }
 
-export async function scanDeps(files: RepoFile[]): Promise<Finding[]> {
-  const deps = collectDeps(files);
+/** Whether a path is a dependency manifest worth parsing. */
+export function isManifest(path: string): boolean {
+  return /(^|\/)(package\.json|requirements[\w.-]*\.txt|go\.mod|Cargo\.toml)$/.test(path);
+}
+
+/** Query OSV for a collected dependency set and turn vulns into findings. */
+export async function queryOsv(collected: Dep[]): Promise<Finding[]> {
+  // Dedupe identical packages (same name, version and ecosystem).
+  const seen = new Set<string>();
+  const deps = collected
+    .filter((d) => {
+      const key = `${d.ecosystem}:${d.name}@${d.version}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, MAX_QUERIES);
   if (deps.length === 0) return [];
 
   let results: Array<{ vulns?: Array<{ id: string }> }> = [];
@@ -139,4 +142,9 @@ export async function scanDeps(files: RepoFile[]): Promise<Finding[]> {
     });
   });
   return findings;
+}
+
+export async function scanDeps(files: RepoFile[]): Promise<Finding[]> {
+  const deps = files.flatMap((f) => (f.text ? parseManifest(f.path, f.text) : []));
+  return queryOsv(deps);
 }

@@ -1,9 +1,22 @@
-import type { Env, Report } from "./types";
-import { resolveSha, fetchRepo } from "./fetchRepo";
-import { scanSecrets } from "./scanners/secrets";
-import { scanPatterns } from "./scanners/patterns";
-import { scanDeps } from "./scanners/deps";
-import { scanBinaries } from "./scanners/binaries";
+import type { Env, Finding, Report } from "./types";
+import {
+  resolveSha,
+  openTarball,
+  looksBinary,
+  BINARY_EXT,
+  MAX_DECODE,
+} from "./fetchRepo";
+import { streamTar, type FileKind, type TarStats } from "./tar";
+import { scanSecretsText } from "./scanners/secrets";
+import { scanPatternsText } from "./scanners/patterns";
+import { parseManifest, isManifest, queryOsv, type Dep } from "./scanners/deps";
+import {
+  SCAN_BINARY_EXT,
+  MAX_BINARIES,
+  sha256,
+  lookupBinaries,
+  type BinTarget,
+} from "./scanners/binaries";
 import { scoreFindings } from "./score";
 import { getCached, putCached } from "./cache";
 import { checkRateLimit } from "./ratelimit";
@@ -14,6 +27,23 @@ import { htmlResponse, jsonResponse, HttpError } from "./util";
 // rejects junk paths and blocks any HTML/script injection through the URL.
 const NAME = /^[A-Za-z0-9._-]+$/;
 
+// Streaming removes the memory wall, but scanning still costs CPU time, which
+// Cloudflare caps per request. These keep the work inside that budget; bigger
+// repos are scanned up to the cap and then truncated gracefully.
+const MAX_FILES = 7000;
+const MAX_BYTES = 90 * 1024 * 1024; // decompressed bytes scanned before truncating
+const MAX_BINARY_BYTES = 32 * 1024 * 1024; // largest binary we will hash
+
+const DECODER = new TextDecoder();
+
+function classify(name: string, size: number): FileKind | "skip" {
+  if (SCAN_BINARY_EXT.test(name))
+    return size <= MAX_BINARY_BYTES ? "binary" : "skip";
+  if (BINARY_EXT.test(name)) return "skip"; // images, archives, fonts, media
+  if (size > MAX_DECODE) return "skip"; // oversized text / minified bundles
+  return "text";
+}
+
 export async function runScan(
   owner: string,
   repo: string,
@@ -21,25 +51,46 @@ export async function runScan(
   env: Env,
   ctx: ExecutionContext,
 ): Promise<Report> {
-  const { files, truncated } = await fetchRepo(owner, repo, sha, env);
+  const stream = await openTarball(owner, repo, sha);
+  const stats: TarStats = { files: 0, bytes: 0, truncated: false };
+  const findings: Finding[] = [];
+  const deps: Dep[] = [];
+  const binTargets: BinTarget[] = [];
+  let binCount = 0;
   const notes: string[] = [];
-  if (truncated)
-    notes.push("Repository exceeded the size cap, so only part of it was scanned.");
 
-  const findings = [
-    ...scanSecrets(files),
-    ...scanPatterns(files),
-    ...(await scanDeps(files)),
-    ...(await scanBinaries(files, env, notes)),
-  ];
+  for await (const f of streamTar(
+    stream,
+    classify,
+    { maxFiles: MAX_FILES, maxBytes: MAX_BYTES },
+    stats,
+  )) {
+    if (f.kind === "binary") {
+      binCount++;
+      if (binTargets.length < MAX_BINARIES)
+        binTargets.push({ path: f.name, hash: await sha256(f.bytes) });
+      continue;
+    }
+    if (looksBinary(f.bytes)) continue; // unknown extension, actually binary
+    const text = DECODER.decode(f.bytes);
+    findings.push(...scanSecretsText(f.name, text));
+    findings.push(...scanPatternsText(f.name, text));
+    if (isManifest(f.name)) deps.push(...parseManifest(f.name, text));
+  }
+
+  findings.push(...(await queryOsv(deps)));
+  findings.push(...(await lookupBinaries(binTargets, binCount, env, notes)));
+
+  if (stats.truncated)
+    notes.push("Repository is very large, so only part of it was scanned.");
 
   const report: Report = {
     owner,
     repo,
     sha,
     scannedAt: new Date().toISOString(),
-    fileCount: files.length,
-    truncated,
+    fileCount: stats.files,
+    truncated: stats.truncated,
     findings,
     score: scoreFindings(findings),
     cached: false,
