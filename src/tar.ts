@@ -92,6 +92,8 @@ class ByteSource {
   }
 }
 
+const META_MAX = 65536;
+
 function isZeroBlock(b: Uint8Array): boolean {
   for (let i = 0; i < 512; i++) if (b[i] !== 0) return false;
   return true;
@@ -164,16 +166,18 @@ export async function* streamTar(
       const pad = padded - size;
 
       if (type === 0x78 || type === 0x58) {
-        const data = await src.read(size);
-        await src.skip(pad);
+        const take = Math.min(size, META_MAX);
+        const data = await src.read(take);
+        await src.skip(padded - take);
         stats.bytes += padded;
         const p = paxPath(data);
         if (p) pending = p;
         continue;
       }
       if (type === 0x4c) {
-        const data = await src.read(size);
-        await src.skip(pad);
+        const take = Math.min(size, META_MAX);
+        const data = await src.read(take);
+        await src.skip(padded - take);
         stats.bytes += padded;
         pending = readCStr(data, 0, data.length).replace(/\0+$/, "");
         continue;

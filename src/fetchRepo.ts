@@ -44,8 +44,9 @@ export async function resolveSha(
 
 export function looksBinary(bytes: Uint8Array): boolean {
   const n = Math.min(bytes.length, 8000);
-  for (let i = 0; i < n; i++) if (bytes[i] === 0) return true;
-  return false;
+  let nul = 0;
+  for (let i = 0; i < n; i++) if (bytes[i] === 0) nul++;
+  return nul > 64 || nul / Math.max(n, 1) > 0.01;
 }
 
 export async function openTarball(

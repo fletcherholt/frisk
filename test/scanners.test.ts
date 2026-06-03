@@ -190,3 +190,25 @@ describe("lockfiles and generated files are low signal", () => {
     ["src/app.js", "src/lock.ts", "go.mod"].forEach((p) => expect(isLowSignalPath(p)).toBe(false));
   });
 });
+
+import { scoreFindings as _score } from "../src/score";
+import { looksBinary } from "../src/fetchRepo";
+import { scanIacText } from "../src/scanners/iac";
+
+describe("review-pass hardening", () => {
+  it("a truncated scan never reads clean", () => {
+    expect(_score([], false).level).toBe("clean");
+    expect(_score([], true).level).toBe("low");
+  });
+  it("a few NUL bytes do not hide a file from scanning", () => {
+    const dense = new Uint8Array(1000).fill(0);
+    expect(looksBinary(dense)).toBe(true);
+    const evasion = new Uint8Array(1000).fill(65);
+    evasion[0] = 0; evasion[5] = 0; evasion[9] = 0;
+    expect(looksBinary(evasion)).toBe(false);
+  });
+  it("does not flag ENV var pointing at a file path as a baked secret", () => {
+    expect(scanIacText("Dockerfile", "ENV TOKEN_FILE /run/secrets/token\n").some((f) => /baked/i.test(f.title))).toBe(false);
+    expect(scanIacText("Dockerfile", 'ENV API_TOKEN=abc123def456ghi\n').some((f) => /baked/i.test(f.title))).toBe(true);
+  });
+});

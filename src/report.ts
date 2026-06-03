@@ -217,8 +217,8 @@ function seoHead(landing: boolean, canonical: string): string {
 <meta name="twitter:title" content="${escapeHtml(SEO_TITLE)}">
 <meta name="twitter:description" content="${escapeHtml(SEO_DESC)}">
 <meta name="twitter:image" content="${SITE}/og.svg">
-<script type="application/ld+json">${JSON_LD}</script>
-<script type="application/ld+json">${FAQ_LD}</script>`;
+<script type="application/ld+json">${JSON_LD.replace(/</g, "\\u003c")}</script>
+<script type="application/ld+json">${FAQ_LD.replace(/</g, "\\u003c")}</script>`;
 }
 
 function shell(inner: string, landing = false, title = "friskit"): string {

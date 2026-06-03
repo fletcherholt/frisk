@@ -8,7 +8,7 @@ const WEIGHT: Record<Severity, number> = {
   info: 0,
 };
 
-export function scoreFindings(findings: Finding[]): Score {
+export function scoreFindings(findings: Finding[], truncated = false): Score {
   const counts: Record<Severity, number> = {
     critical: 0,
     high: 0,
@@ -28,6 +28,8 @@ export function scoreFindings(findings: Finding[]): Score {
   else if (counts.medium >= 1) level = "medium";
   else if (counts.low >= 1) level = "low";
   else level = "clean";
+
+  if (truncated && level === "clean") level = "low";
 
   return { level, points, counts };
 }

@@ -6,7 +6,7 @@ import {
   BINARY_EXT,
   MAX_DECODE,
 } from "./fetchRepo";
-import { isLowSignalPath, isGeneratedFile } from "./util";
+import { isGeneratedFile } from "./util";
 import { streamTar, type FileKind, type TarStats } from "./tar";
 import {
   scanSecretsText,
@@ -58,6 +58,22 @@ function busyResponse(wantJson: boolean, owner: string, repo: string): Response 
 const NAME = /^[A-Za-z0-9._-]+$/;
 const INDEXNOW_KEY = "8f2b6d4a9c1e7035f4a8b2d6c0e3197a";
 
+function staticResponse(
+  body: BodyInit,
+  contentType: string,
+  maxAge: number,
+  extra: Record<string, string> = {},
+): Response {
+  return new Response(body, {
+    headers: {
+      "content-type": contentType,
+      "cache-control": `public, max-age=${maxAge}`,
+      "x-content-type-options": "nosniff",
+      ...extra,
+    },
+  });
+}
+
 const MAX_FILES = 10000;
 const MAX_BYTES = 90 * 1024 * 1024;
 const MAX_BINARY_BYTES = 32 * 1024 * 1024;
@@ -69,7 +85,7 @@ const DECODER = new TextDecoder();
 function classify(name: string, size: number): FileKind | "skip" {
   if (isGeneratedFile(name)) return "skip";
   if (SCAN_BINARY_EXT.test(name)) {
-    if (isLowSignalPath(name) || size > MAX_BINARY_BYTES) return "skip";
+    if (size > MAX_BINARY_BYTES) return "skip";
     return "binary";
   }
   if (BINARY_EXT.test(name)) return "skip";
@@ -152,9 +168,11 @@ export async function runScan(
   }
 
   if (stats.truncated)
-    notes.push("Repository is very large, so only part of it was scanned.");
+    notes.push(
+      "Repository is very large, so only part of it was scanned. A clean or low result is not conclusive.",
+    );
 
-  const score = scoreFindings(findings);
+  const score = scoreFindings(findings, stats.truncated);
   let shown = findings;
   if (findings.length > MAX_FINDINGS) {
     const rank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
@@ -220,34 +238,35 @@ export default {
     if (path === "favicon.ico") return new Response(null, { status: 204 });
 
     if (path === "robots.txt")
-      return new Response(
+      return staticResponse(
         `User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: https://friskit.dev/sitemap.xml\n`,
-        { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" } },
+        "text/plain; charset=utf-8",
+        86400,
       );
     if (path === "sitemap.xml")
-      return new Response(
+      return staticResponse(
         `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n<url><loc>https://friskit.dev/</loc><lastmod>2026-06-03</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n</urlset>\n`,
-        { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=86400" } },
+        "application/xml; charset=utf-8",
+        86400,
       );
     if (path === `${INDEXNOW_KEY}.txt`)
-      return new Response(INDEXNOW_KEY, {
-        headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" },
-      });
+      return staticResponse(INDEXNOW_KEY, "text/plain; charset=utf-8", 86400);
     if (path === ".well-known/security.txt" || path === "security.txt")
-      return new Response(
+      return staticResponse(
         `Contact: https://github.com/fletcherholt/frisk/issues\nPolicy: https://github.com/fletcherholt/frisk\nPreferred-Languages: en\nExpires: 2027-01-01T00:00:00.000Z\n`,
-        { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" } },
+        "text/plain; charset=utf-8",
+        86400,
       );
     if (path === "og.svg")
-      return new Response(ogImage(), {
-        headers: { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=86400" },
+      return staticResponse(ogImage(), "image/svg+xml; charset=utf-8", 86400, {
+        "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'",
       });
-    if (path === "icon.png" || path === "favicon.png") {
-      const bytes = Uint8Array.from(atob(FAVICON.split(",")[1]), (c) => c.charCodeAt(0));
-      return new Response(bytes, {
-        headers: { "content-type": "image/png", "cache-control": "public, max-age=604800" },
-      });
-    }
+    if (path === "icon.png" || path === "favicon.png")
+      return staticResponse(
+        Uint8Array.from(atob(FAVICON.split(",")[1]), (c) => c.charCodeAt(0)),
+        "image/png",
+        604800,
+      );
 
     const sbomMatch = path.match(/^api\/sbom\/([^/]+)\/([^/]+)(?:\/.*)?$/);
     const apiMatch = path.match(/^api\/scan\/([^/]+)\/([^/]+)(?:\/.*)?$/);

@@ -10,7 +10,7 @@ interface Rule {
 
 const DOCKERFILE_RULES: Rule[] = [
   { title: "Dockerfile ADD from a remote URL", severity: "low", detail: "ADD of a remote URL pulls unverified content into the image. Prefer COPY, or download with a checksum.", re: /^\s*ADD\s+https?:\/\//gim },
-  { title: "Secret baked into an image layer", severity: "medium", detail: "A credential set in ENV or ARG is persisted in the image and visible to anyone who pulls it.", re: /^\s*(?:ENV|ARG)\s+\w*(?:PASSWORD|PASSWD|SECRET|TOKEN|APIKEY|API_KEY|ACCESS_KEY|PRIVATE_KEY)\w*\s*[=\s]\s*\S/gim },
+  { title: "Secret baked into an image layer", severity: "medium", detail: "A credential set in ENV or ARG is persisted in the image and visible to anyone who pulls it.", re: /^\s*(?:ENV|ARG)\s+\w*(?:PASSWORD|PASSWD|SECRET|TOKEN|APIKEY|API_KEY|ACCESS_KEY|PRIVATE_KEY)\w*(?<!_FILE)(?<!_PATH)(?<!_DIR)(?<!_NAME)(?<!_LOCATION)(?<!_URL)\s*[=\s]\s*(?![/$"']?[/$])\S/gim },
 ];
 
 const INFRA_RULES: Rule[] = [
