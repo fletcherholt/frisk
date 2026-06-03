@@ -8,6 +8,7 @@ interface Rule {
   severity: Severity;
   detail: string;
   soft?: boolean;
+  keep?: boolean;
 }
 
 const RULES: Rule[] = [
@@ -22,9 +23,9 @@ const RULES: Rule[] = [
   { id: "ssh-read", title: "Reads SSH private keys", severity: "medium", soft: true, detail: "Accesses SSH private keys. Normal for SSH, git and deployment tooling, only a concern in untrusted code.", re: /(?:\.ssh\/id_(?:rsa|ed25519|ecdsa|dsa)|\/\.ssh\/authorized_keys)/g },
   { id: "cloud-creds-read", title: "Reads cloud credentials file", severity: "low", soft: true, detail: "Reads the cloud credentials file. Normal for cloud SDKs and CLIs, only a concern in untrusted code.", re: /(?:\.aws\/credentials|\.config\/gcloud|\.azure\/credentials)/g },
   { id: "wallet-file", title: "References a crypto wallet file", severity: "medium", soft: true, detail: "References a wallet file such as wallet.dat. Normal in wallet software, a concern in untrusted code.", re: /\bwallet\.dat\b/gi },
-  { id: "wallet-steal", title: "Targets crypto wallet storage", severity: "high", soft: true, detail: "Reaches into a wallet's on-disk storage in a user profile directory, the behaviour of a crypto stealer.", re: /(?:AppData|Roaming|Application Support|Local Extension Settings|\.config|\.ethereum|\.electrum)[\\/][^\n'"`]{0,80}(?:MetaMask|Exodus|Electrum|Ledger\s*Live|Atomic|Coinbase|wallet)|(?:MetaMask|Exodus|Electrum|Ledger\s*Live|Atomic\s*Wallet)[^\n'"`]{0,40}(?:Local Storage|Extension Settings|leveldb|\.ldb|keystore|\.wallet)/gi },
-  { id: "browser-steal", title: "Targets browser login data", severity: "high", soft: true, detail: "Reads the browser credential store. Credential stealer behaviour.", re: /(?:Google[\\/]Chrome|BraveSoftware|Microsoft[\\/]Edge|Chromium)[\\/]User Data|\bLogin Data\b[^\n]{0,40}(?:sqlite|SELECT |encrypted_value|password_value|origin_url)/gi },
-  { id: "discord-token", title: "Targets Discord tokens", severity: "high", soft: true, detail: "Reads Discord tokens. Info stealer behaviour.", re: /discord[^\n]{0,40}(?:leveldb|\.ldb)/gi },
+  { id: "wallet-steal", title: "Targets crypto wallet storage", severity: "high", soft: true, keep: true, detail: "Reaches into a wallet's on-disk storage in a user profile directory, the behaviour of a crypto stealer.", re: /(?:AppData|Roaming|Application Support|Local Extension Settings|\.config|\.ethereum|\.electrum)[\\/][^\n'"`]{0,80}(?:MetaMask|Exodus|Electrum|Ledger\s*Live|Atomic|Coinbase|wallet)|(?:MetaMask|Exodus|Electrum|Ledger\s*Live|Atomic\s*Wallet)[^\n'"`]{0,40}(?:Local Storage|Extension Settings|leveldb|\.ldb|keystore|\.wallet)/gi },
+  { id: "browser-steal", title: "Targets browser login data", severity: "high", soft: true, keep: true, detail: "Reads the browser credential store. Credential stealer behaviour.", re: /(?:Google[\\/]Chrome|BraveSoftware|Microsoft[\\/]Edge|Chromium)[\\/]User Data|\bLogin Data\b[^\n]{0,40}(?:sqlite|SELECT |encrypted_value|password_value|origin_url)/gi },
+  { id: "discord-token", title: "Targets Discord tokens", severity: "high", soft: true, keep: true, detail: "Reads Discord tokens. Info stealer behaviour.", re: /discord[^\n]{0,40}(?:leveldb|\.ldb)/gi },
 ];
 
 const CI_BUILD = /(^|\/)\.github\/|(^|\/)Dockerfile/i;
@@ -54,9 +55,12 @@ function downgradeSoft(s: Severity): Severity {
 
 export function scanPatternsText(path: string, text: string): Finding[] {
   const findings: Finding[] = [];
-  const soft = isLowSignalPath(path) || CI_BUILD.test(path);
+  const inCI = CI_BUILD.test(path);
+  const lowSig = isLowSignalPath(path);
+  const soft = lowSig || inCI;
 
   for (const rule of RULES) {
+    if (rule.soft && lowSig && !inCI && !rule.keep) continue;
     rule.re.lastIndex = 0;
     let m: RegExpExecArray | null;
     let perRule = 0;
