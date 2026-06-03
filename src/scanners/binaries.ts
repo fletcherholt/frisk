@@ -132,11 +132,11 @@ export async function lookupBinaries(
       });
     } else {
       findings.push({
-        severity: "low",
+        severity: "info",
         category: "binary",
         title: "Unknown binary (not in VirusTotal)",
         file: path,
-        detail: `VirusTotal has never seen this file. Committed binaries of unknown provenance are a risk. SHA-256 ${hash}.`,
+        detail: `VirusTotal has never seen this file. Worth a glance, but most committed binaries are harmless. SHA-256 ${hash}.`,
       });
     }
   }

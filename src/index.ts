@@ -6,6 +6,7 @@ import {
   BINARY_EXT,
   MAX_DECODE,
 } from "./fetchRepo";
+import { isLowSignalPath } from "./util";
 import { streamTar, type FileKind, type TarStats } from "./tar";
 import { scanSecretsText } from "./scanners/secrets";
 import { scanPatternsText } from "./scanners/patterns";
@@ -52,12 +53,17 @@ const NAME = /^[A-Za-z0-9._-]+$/;
 const MAX_FILES = 7000;
 const MAX_BYTES = 90 * 1024 * 1024; // decompressed bytes read before truncating
 const MAX_BINARY_BYTES = 32 * 1024 * 1024; // largest binary we will hash
+const MAX_FINDINGS = 1000; // cap stored/rendered findings (score still uses all)
 
 const DECODER = new TextDecoder();
 
 function classify(name: string, size: number): FileKind | "skip" {
-  if (SCAN_BINARY_EXT.test(name))
-    return size <= MAX_BINARY_BYTES ? "binary" : "skip";
+  if (SCAN_BINARY_EXT.test(name)) {
+    // Test fixtures and sample binaries are noise and would waste the scarce
+    // VirusTotal budget; leave it for binaries in real code paths.
+    if (isLowSignalPath(name) || size > MAX_BINARY_BYTES) return "skip";
+    return "binary";
+  }
   if (BINARY_EXT.test(name)) return "skip"; // images, archives, fonts, media
   if (size > MAX_DECODE) return "skip"; // oversized text / minified bundles
   return "text";
@@ -102,6 +108,20 @@ export async function runScan(
   if (stats.truncated)
     notes.push("Repository is very large, so only part of it was scanned.");
 
+  // Score on the full set, but cap what we store/render so a pathological repo
+  // cannot produce a giant report or blow KV's value-size limit.
+  const score = scoreFindings(findings);
+  let shown = findings;
+  if (findings.length > MAX_FINDINGS) {
+    const rank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+    shown = [...findings]
+      .sort((a, b) => rank[a.severity] - rank[b.severity])
+      .slice(0, MAX_FINDINGS);
+    notes.push(
+      `This repository produced ${findings.length} findings; showing the ${MAX_FINDINGS} most severe.`,
+    );
+  }
+
   const report: Report = {
     owner,
     repo,
@@ -109,8 +129,8 @@ export async function runScan(
     scannedAt: new Date().toISOString(),
     fileCount: stats.files,
     truncated: stats.truncated,
-    findings,
-    score: scoreFindings(findings),
+    findings: shown,
+    score,
     cached: false,
     notes,
   };
