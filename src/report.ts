@@ -56,14 +56,18 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 /* entrance animation: logo blurs/scales in, the rest rises in just after */
 @keyframes logoIn{0%{opacity:0;transform:translateY(18px) scale(.94);filter:blur(10px)}100%{opacity:1;transform:none;filter:none}}
 @keyframes riseIn{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:none}}
-.page-landing .logo{animation:logoIn .85s cubic-bezier(.2,.7,.2,1) both}
+.page-landing .logobar{animation:logoIn .85s cubic-bezier(.2,.7,.2,1) both}
 .page-landing .tag{animation:riseIn .7s cubic-bezier(.2,.7,.2,1) .18s both}
 .page-landing .box{animation:riseIn .7s cubic-bezier(.2,.7,.2,1) .3s both}
 .page-landing .hero .sub{animation:riseIn .7s cubic-bezier(.2,.7,.2,1) .4s both}
 @media (prefers-reduced-motion:reduce){
   .page-landing .logo,.page-landing .tag,.page-landing .box,.page-landing .hero .sub{animation:none}
 }
-.logo{font-size:46px;font-weight:800;letter-spacing:-1px;color:var(--text);text-align:center}
+.logobar{text-align:center}
+.logo{display:inline-block;font-size:46px;font-weight:800;letter-spacing:-1px;color:var(--text);text-decoration:none;transition:color .2s ease,transform .2s ease}
+.logo:hover{color:var(--mauve);transform:translateY(-2px)}
+.logo-hint{display:block;margin-top:8px;font-size:13px;font-weight:600;color:var(--blue);opacity:0;transform:translateY(-4px);transition:opacity .25s ease,transform .25s ease;pointer-events:none}
+.logobar:hover .logo-hint{opacity:1;transform:none}
 .logo b{color:var(--mauve)}
 .tag{color:var(--subtext0);margin-top:6px;font-size:15px;text-align:center}
 
@@ -185,7 +189,7 @@ export function renderReport(r: Report): string {
   const notes = r.notes.map((n) => `<div class="note">${escapeHtml(n)}</div>`).join("");
 
   const inner = `
-<div class="logo">frisk</div>
+<div class="logobar"><a class="logo" href="https://github.com/fletcherholt/frisk">frisk</a><span class="logo-hint">check out the repo ↗</span></div>
 <h1>${escapeHtml(r.owner)}/${escapeHtml(r.repo)}</h1>
 <div class="sub">commit ${r.sha.slice(0, 10)} · ${r.fileCount} files scanned${r.truncated ? " (truncated)" : ""} · <a href="https://github.com/${escapeHtml(r.owner)}/${escapeHtml(r.repo)}">GitHub</a>${r.cached ? " · cached" : ""}</div>
 <div class="badge" style="background:${LEVEL_COLOR[r.score.level]}">${LEVEL_LABEL[r.score.level]}</div>
@@ -199,7 +203,7 @@ ${r.findings.length === 0 ? '<div class="clean">Nothing flagged. No secrets, sus
 export function landingPage(): string {
   const inner = `
 <div class="hero">
-<div class="logo">frisk</div>
+<div class="logobar"><a class="logo" href="https://github.com/fletcherholt/frisk">frisk</a><span class="logo-hint">check out the repo ↗</span></div>
 <div class="tag">frisk it before you clone it.</div>
 <form class="box" onsubmit="go(event)">
   <input id="u" placeholder="github.com/owner/repo" autofocus autocapitalize="off" autocomplete="off" spellcheck="false">
@@ -250,7 +254,7 @@ export function scanningPage(owner: string, repo: string): string {
 
 export function errorPage(owner: string, repo: string, message: string): string {
   const inner = `
-<div class="logo">frisk</div>
+<div class="logobar"><a class="logo" href="https://github.com/fletcherholt/frisk">frisk</a><span class="logo-hint">check out the repo ↗</span></div>
 <h1>${escapeHtml(owner)}/${escapeHtml(repo)}</h1>
 <div class="f"><div class="ftitle" style="color:#fab387">Could not scan</div>
 <div class="fdetail">${escapeHtml(message)}</div></div>`;
