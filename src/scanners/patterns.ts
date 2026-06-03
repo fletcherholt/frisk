@@ -17,8 +17,8 @@ const RULES: Rule[] = [
   { id: "eval-fromcharcode", title: "Obfuscated eval (fromCharCode)", severity: "high", detail: "Builds code from character codes and executes it.", re: /\b(?:eval|Function)\s*\(\s*String\.fromCharCode/g },
   { id: "py-exec-b64", title: "Python exec of base64", severity: "critical", detail: "Decodes base64 and executes it. Common malware loader.", re: /\b(?:exec|eval)\s*\(\s*(?:base64\.b64decode|__import__\(\s*['"]base64)/g },
   { id: "py-marshal", title: "Python marshal/pickle loader", severity: "medium", soft: true, detail: "Loads marshalled or pickled data, which can run arbitrary code if the input is untrusted.", re: /\bmarshal\.loads\s*\(|\bpickle\.loads\s*\(/g },
-  { id: "powershell-enc", title: "Encoded PowerShell command", severity: "high", detail: "Runs a base64 encoded PowerShell payload.", re: /powershell(?:\.exe)?\s+.*-e(?:nc(?:odedcommand)?)?\s+[A-Za-z0-9+/=]{40,}/gi },
-  { id: "base64-blob", title: "Large embedded base64 blob", severity: "low", soft: true, detail: "A long base64 string. Usually embedded data, occasionally a hidden payload.", re: /['"`][A-Za-z0-9+/]{350,}={0,2}['"`]/g },
+  { id: "powershell-enc", title: "Encoded PowerShell command", severity: "high", detail: "Runs a base64 encoded PowerShell payload.", re: /powershell(?:\.exe)?\s+.{0,300}-e(?:nc(?:odedcommand)?)?\s+[A-Za-z0-9+/=]{40,4096}/gi },
+  { id: "base64-blob", title: "Large embedded base64 blob", severity: "low", soft: true, detail: "A long base64 string. Usually embedded data, occasionally a hidden payload.", re: /['"`][A-Za-z0-9+/]{350,}/g },
   { id: "hex-blob", title: "Large hex/byte blob", severity: "low", soft: true, detail: "A long escaped byte sequence. Occasionally hides shellcode.", re: /(?:\\x[0-9a-fA-F]{2}){80,}/g },
   // Context sensitive rules below: normal in docs and tooling, suspicious in untrusted code.
   { id: "curl-pipe-sh", title: "Pipe remote script to shell", severity: "medium", soft: true, detail: "Downloads and runs a remote script. Standard in install docs and CI, only risky when it runs automatically from untrusted code.", re: /\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:ba|z|da)?sh\b/g },

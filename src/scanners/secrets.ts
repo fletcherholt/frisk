@@ -22,7 +22,7 @@ const RULES: Rule[] = [
   { id: "stripe", title: "Stripe live secret key", severity: "critical", re: /\bsk_live_[0-9A-Za-z]{24,}\b/g },
   { id: "google-api", title: "Google API key", severity: "high", re: /\bAIza[0-9A-Za-z\-_]{35}\b/g },
   { id: "private-key", title: "Private key block", severity: "critical", re: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----/g },
-  { id: "jwt", title: "JSON Web Token", severity: "medium", re: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g },
+  { id: "jwt", title: "JSON Web Token", severity: "medium", re: /\beyJ[A-Za-z0-9_-]{8,1024}\.[A-Za-z0-9_-]{8,1024}\.[A-Za-z0-9_-]{8,1024}\b/g },
   { id: "slack-webhook", title: "Slack webhook URL", severity: "high", re: /https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/]+/g },
   { id: "npm-token", title: "npm access token", severity: "high", re: /\bnpm_[0-9A-Za-z]{36}\b/g },
   // Generic key=value with a high-entropy value.

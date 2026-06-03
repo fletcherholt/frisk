@@ -239,6 +239,7 @@ export function scanningPage(owner: string, repo: string): string {
 <script>
 (function(){
   var p=${path};
+  try{sessionStorage.removeItem('frisk_busy_tries');}catch(e){}  // fresh attempt resets the busy give-up
   var seq=['','.','..','...','..','.'];var i=0;   // dots grow then shrink
   var title='scanning';
   setInterval(function(){document.title=title+seq[i];i=(i+1)%seq.length;},350);
@@ -274,9 +275,16 @@ export function busyPage(owner: string, repo: string): string {
   const inner = `
 <div class="hero">
   <span class="loader"></span>
-  <div class="scan-label">frisk is busy right now<br><span class="dim">lots of people are scanning ${escapeHtml(owner)}/${escapeHtml(repo)} and others. this page retries automatically.</span></div>
+  <div class="scan-label" id="lbl">frisk is busy right now<br><span class="dim">lots of people are scanning ${escapeHtml(owner)}/${escapeHtml(repo)} and others. this page retries automatically.</span></div>
 </div>
-<script>setTimeout(function(){location.reload();}, 6000+Math.floor(Math.random()*5000));</script>`;
+<script>
+(function(){
+  var k='frisk_busy_tries', n=(+sessionStorage.getItem(k)||0)+1;
+  if(n>15){sessionStorage.removeItem(k);document.getElementById('lbl').innerHTML='still very busy<br><span class="dim">please try again in a few minutes</span>';return;}
+  sessionStorage.setItem(k,n);
+  setTimeout(function(){location.reload();}, 6000+Math.floor(Math.random()*5000));
+})();
+</script>`;
   return shell(inner, true, "busy");
 }
 

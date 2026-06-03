@@ -177,9 +177,12 @@ export default {
       // for users is the same "too busy, wait" situation.
       if (e instanceof HttpError && e.status === 429)
         return busyResponse(wantJson, owner, repo);
+      // Only our own HttpError messages are safe to show. Anything else is an
+      // internal failure; show a generic message rather than leaking details.
       const status = e instanceof HttpError ? e.status : 500;
-      const msg =
-        e instanceof Error ? e.message : "Unexpected error during scan.";
+      const msg = e instanceof HttpError
+        ? e.message
+        : "Something went wrong while scanning. Please try again.";
       return wantJson
         ? jsonResponse({ error: msg }, status)
         : htmlResponse(errorPage(owner, repo, msg), status);
