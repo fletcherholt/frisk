@@ -167,7 +167,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "How do I scan a GitHub repository for secrets or malware?",
-    a: "Swap github.com for friskit.dev in any repository URL, or paste the repo on the home page. frisk reads the latest commit, scans it and returns a report in about a second. There is no login and nothing to install.",
+    a: "Swap github.com for friskit.dev in any repository URL, or paste the repo on the home page. frisk reads the latest commit, scans it and returns a report in seconds, instantly if it has scanned that repo recently. There is no login and nothing to install.",
   },
   {
     q: "Is frisk free?",
@@ -175,7 +175,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Does frisk store my code?",
-    a: "No. Code is streamed, scanned in memory and never stored. Detected secrets are checked against their provider to see whether they are still live, and committed binaries are hashed for VirusTotal. Nothing else leaves the edge.",
+    a: "frisk does not retain your source. It caches the report so repeat scans are instant, and that report includes short snippets of the lines it flagged. To run its checks it sends a few things off the edge: detected GitHub, Slack, Stripe and npm tokens go to their own provider to test whether they are live, committed binary hashes go to VirusTotal, and dependency names go to OSV.",
   },
   {
     q: "What does frisk check for?",
@@ -183,7 +183,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Why does scanning a security tool come back critical?",
-    a: "A scanner's own source and tests contain the exact patterns it hunts for, so pointing frisk at a security tool, including frisk itself, can report critical. Open the flagged files and judge for yourself. frisk never reaches a critical verdict from a single heuristic match.",
+    a: "A scanner's own source and tests contain the exact patterns it hunts for, so pointing frisk at a security tool, including frisk itself, can report critical. Open the flagged files and judge for yourself. Critical is reserved for high-confidence signals such as a verified-live secret, a known-malicious package, a flagged binary, or an unambiguous malware pattern; low-confidence heuristics are capped below it.",
   },
 ];
 
@@ -231,7 +231,7 @@ ${seoHead(landing, `${SITE}/`)}
 <body><div class="page${landing ? " page-landing" : ""}">
 <main class="wrap">${inner}</main>
 <footer class="bottom">
-<div class="foot">Code is never stored. Detected secrets are checked against their provider to confirm whether they are live. Results are heuristic. · <a href="/">scan another repo</a></div>
+<div class="foot">Source is not retained. Detected GitHub, Slack, Stripe and npm tokens are checked against their own provider to confirm whether they are live. Results are heuristic. · <a href="/">scan another repo</a></div>
 <div class="powered">binary checks powered by <a href="https://www.virustotal.com">VirusTotal</a> · dependency data from <a href="https://osv.dev">OSV</a></div>
 <div class="copy">© 2026 Fletcher Holt · <a href="https://github.com/fletcherholt">github.com/fletcherholt</a> · <a class="kofi" href="https://ko-fi.com/fletcherholt">support on Ko-fi</a></div>
 </footer>
@@ -323,7 +323,7 @@ export function landingPage(): string {
 <details class="explain">
   <summary>What does it do?</summary>
   <div class="checks">
-    <div class="row"><span class="dot" style="background:#f38ba8"></span><div><b>Leaked secrets</b><br><span>API keys, tokens and private keys, checked against their provider to see if they are live.</span></div></div>
+    <div class="row"><span class="dot" style="background:#f38ba8"></span><div><b>Leaked secrets</b><br><span>API keys, tokens and private keys. GitHub, Slack, Stripe and npm tokens are checked against their provider to see if they are still live.</span></div></div>
     <div class="row"><span class="dot" style="background:#fab387"></span><div><b>Malicious code</b><br><span>Obfuscated eval, shellcode blobs, curl-pipe-sh, credential and wallet stealers.</span></div></div>
     <div class="row"><span class="dot" style="background:#a6e3a1"></span><div><b>Supply chain</b><br><span>Confirmed-malicious and typosquatted packages, plus vulnerable deps via OSV (npm, PyPI, Go, Cargo).</span></div></div>
     <div class="row"><span class="dot" style="background:#cba6f7"></span><div><b>Bad binaries</b><br><span>Committed executables hashed and looked up on VirusTotal.</span></div></div>

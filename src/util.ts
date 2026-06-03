@@ -5,6 +5,8 @@ const TEST_FILE =
   /(?:^|\/)(?:test_[^/]+|[^/]+[._-](?:test|spec)s?)\.[A-Za-z0-9]+$/i;
 const GENERATED_FILE =
   /(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|pnpm-lock\.yaml|bun\.lockb?|go\.sum|gradle\.lockfile)$|\.lock$|\.(?:min\.(?:js|css|mjs)|map)$|(?:\.pb\.go|_pb2\.py|\.generated\.[A-Za-z0-9]+|\.g\.dart)$/i;
+const SKIP_FILE =
+  /(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|pnpm-lock\.yaml|bun\.lockb?|go\.sum|gradle\.lockfile)$|\.lock$|\.map$/i;
 
 export function isLowSignalPath(path: string): boolean {
   return (
@@ -16,7 +18,7 @@ export function isLowSignalPath(path: string): boolean {
 }
 
 export function isGeneratedFile(path: string): boolean {
-  return GENERATED_FILE.test(path);
+  return SKIP_FILE.test(path);
 }
 
 export class HttpError extends Error {

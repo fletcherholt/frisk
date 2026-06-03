@@ -44,12 +44,19 @@ function downgrade(s: Severity): Severity {
   return s === "critical" || s === "high" ? "low" : "info";
 }
 
+function downgradeSoft(s: Severity): Severity {
+  return s === "critical" || s === "high"
+    ? "medium"
+    : s === "medium"
+      ? "low"
+      : "info";
+}
+
 export function scanPatternsText(path: string, text: string): Finding[] {
   const findings: Finding[] = [];
   const soft = isLowSignalPath(path) || CI_BUILD.test(path);
 
   for (const rule of RULES) {
-    if (rule.soft && soft) continue;
     rule.re.lastIndex = 0;
     let m: RegExpExecArray | null;
     let perRule = 0;
@@ -60,9 +67,12 @@ export function scanPatternsText(path: string, text: string): Finding[] {
       if (seen.has(line)) continue;
       seen.add(line);
       const commented = isCommentAt(text, m.index);
-      const dampened = soft || commented;
       findings.push({
-        severity: dampened ? downgrade(rule.severity) : rule.severity,
+        severity: commented
+          ? downgrade(rule.severity)
+          : soft
+            ? downgradeSoft(rule.severity)
+            : rule.severity,
         category: "pattern",
         title: commented
           ? `${rule.title} (in a comment)`

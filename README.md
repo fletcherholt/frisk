@@ -21,11 +21,11 @@ Swap the domain on any GitHub repo:
 github.com/owner/repo   →   friskit.dev/owner/repo
 ```
 
-Or paste a repo at [friskit.dev](https://friskit.dev). You get a report in about a second. Your code is never stored. Detected secrets are checked against their provider to confirm whether they are live, and committed binaries are hashed for VirusTotal.
+Or paste a repo at [friskit.dev](https://friskit.dev). You get a report in seconds (instant if it was scanned recently). frisk does not retain your source, though it caches the report, which includes short snippets of the lines it flagged. Detected GitHub, Slack, Stripe and npm tokens are checked against their provider to see if they are live, committed binary hashes go to VirusTotal, and dependency names to OSV.
 
 ## What it checks
 
-- **Secrets** committed to the repo: API keys, tokens, private keys, checked against their provider to see if they are still live.
+- **Secrets** committed to the repo: API keys, tokens and private keys. GitHub, Slack, Stripe and npm tokens are checked against their provider to see if they are still live.
 - **Malicious code**: obfuscated eval, shellcode blobs, curl piped to shell, credential and wallet stealers.
 - **Supply chain**: confirmed-malicious packages (OSSF malicious-packages), typosquats, and vulnerable dependencies via [OSV](https://osv.dev) across npm, PyPI, Go and Cargo.
 - **Bad binaries**: executables hashed and checked on [VirusTotal](https://www.virustotal.com).

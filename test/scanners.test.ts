@@ -129,13 +129,20 @@ describe("patterns comment dampening", () => {
     );
     expect(f.some((x) => x.title.includes("wallet storage"))).toBe(true);
   });
-  it("downgrades eval inside vendored third-party code", () => {
+  it("dampens but still surfaces eval inside vendored third-party code", () => {
     const f = scanPatternsText(
       "vendor/firebug-lite/src/debug.js",
       "value = eval(unescape(parts[1]));\n",
     );
-    expect(f[0].severity).toBe("low");
+    expect(f[0].severity).toBe("medium");
     expect(f[0].title).toContain("vendored");
+  });
+  it("still surfaces a stealer in a CI workflow instead of dropping it", () => {
+    const f = scanPatternsText(
+      ".github/workflows/ci.yml",
+      "run: cp ~/AppData/Roaming/Exodus/exodus.wallet .\n",
+    );
+    expect(f.some((x) => x.title.includes("wallet storage"))).toBe(true);
   });
 });
 
