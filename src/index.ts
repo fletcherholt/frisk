@@ -56,6 +56,7 @@ function busyResponse(wantJson: boolean, owner: string, repo: string): Response 
 }
 
 const NAME = /^[A-Za-z0-9._-]+$/;
+const INDEXNOW_KEY = "8f2b6d4a9c1e7035f4a8b2d6c0e3197a";
 
 const MAX_FILES = 7000;
 const MAX_BYTES = 90 * 1024 * 1024;
@@ -224,8 +225,17 @@ export default {
       );
     if (path === "sitemap.xml")
       return new Response(
-        `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n<url><loc>https://friskit.dev/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>\n</urlset>\n`,
+        `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n<url><loc>https://friskit.dev/</loc><lastmod>2026-06-03</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n</urlset>\n`,
         { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=86400" } },
+      );
+    if (path === `${INDEXNOW_KEY}.txt`)
+      return new Response(INDEXNOW_KEY, {
+        headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" },
+      });
+    if (path === ".well-known/security.txt" || path === "security.txt")
+      return new Response(
+        `Contact: https://github.com/fletcherholt/frisk/issues\nPolicy: https://github.com/fletcherholt/frisk\nPreferred-Languages: en\nExpires: 2027-01-01T00:00:00.000Z\n`,
+        { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" } },
       );
     if (path === "og.svg")
       return new Response(ogImage(), {

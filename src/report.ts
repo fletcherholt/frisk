@@ -144,7 +144,13 @@ const JSON_LD = JSON.stringify({
   browserRequirements: "Requires JavaScript",
   description: SEO_DESC,
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  creator: { "@type": "Person", name: "Fletcher Holt" },
+  creator: {
+    "@type": "Person",
+    name: "Fletcher Holt",
+    url: "https://github.com/fletcherholt",
+  },
+  sameAs: ["https://github.com/fletcherholt/frisk"],
+  isAccessibleForFree: true,
   featureList: [
     "Leaked secret detection with live credential validation",
     "Malware and stealer pattern detection",
@@ -196,6 +202,8 @@ function seoHead(landing: boolean, canonical: string): string {
   return `<meta name="description" content="${escapeHtml(SEO_DESC)}">
 <link rel="canonical" href="${canonical}">
 <meta name="robots" content="index,follow,max-image-preview:large">
+<meta name="theme-color" content="#1e1e2e">
+<meta property="og:locale" content="en_GB">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="frisk">
 <meta property="og:title" content="${escapeHtml(SEO_TITLE)}">
