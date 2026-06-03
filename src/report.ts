@@ -259,7 +259,9 @@ export function scanningPage(owner: string, repo: string): string {
         setTimeout(attempt, 4000+Math.random()*3000);   // queue: retry until a slot frees
         return;
       }
-      r.ok ? go() : done();
+      if(!r.ok){done();return;}
+      // Cached results show instantly; only a real scan holds the spinner.
+      r.json().then(function(j){ (j&&j.cached) ? done() : go(); }, go);
     }, function(){ if(++tries>30){done();return;} setTimeout(attempt, 3000); });
   }
   attempt();

@@ -46,11 +46,11 @@ function busyResponse(wantJson: boolean, owner: string, repo: string): Response 
 // rejects junk paths and blocks any HTML/script injection through the URL.
 const NAME = /^[A-Za-z0-9._-]+$/;
 
-// Streaming removes the memory wall, but scanning still costs CPU time, which
-// Cloudflare caps per request. These keep the work inside that budget; bigger
-// repos are scanned up to the cap and then truncated gracefully.
+// Streaming removes the memory wall, but the total work (decompressing plus
+// scanning) still costs CPU time, which Cloudflare caps per request. This bound
+// keeps every repo inside that budget; bigger ones truncate gracefully.
 const MAX_FILES = 7000;
-const MAX_BYTES = 90 * 1024 * 1024; // decompressed bytes scanned before truncating
+const MAX_BYTES = 90 * 1024 * 1024; // decompressed bytes read before truncating
 const MAX_BINARY_BYTES = 32 * 1024 * 1024; // largest binary we will hash
 
 const DECODER = new TextDecoder();
@@ -88,13 +88,12 @@ export async function runScan(
       binCount++;
       if (binTargets.length < MAX_BINARIES)
         binTargets.push({ path: f.name, hash: await sha256(f.bytes) });
-      continue;
+    } else if (!looksBinary(f.bytes)) {
+      const text = DECODER.decode(f.bytes);
+      findings.push(...scanSecretsText(f.name, text));
+      findings.push(...scanPatternsText(f.name, text));
+      if (isManifest(f.name)) deps.push(...parseManifest(f.name, text));
     }
-    if (looksBinary(f.bytes)) continue; // unknown extension, actually binary
-    const text = DECODER.decode(f.bytes);
-    findings.push(...scanSecretsText(f.name, text));
-    findings.push(...scanPatternsText(f.name, text));
-    if (isManifest(f.name)) deps.push(...parseManifest(f.name, text));
   }
 
   findings.push(...(await queryOsv(deps)));
