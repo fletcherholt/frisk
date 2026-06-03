@@ -44,36 +44,40 @@ async function bumpQuota(env: Env): Promise<void> {
 }
 
 async function lookup(hash: string, env: Env): Promise<VtResult | null> {
-  const cached = await env.VT_CACHE.get(hash, "json");
-  if (cached) return cached as VtResult;
+  try {
+    const cached = await env.VT_CACHE.get(hash, "json");
+    if (cached) return cached as VtResult;
 
-  if (!env.VT_API_KEY || !(await quotaLeft(env))) return null;
+    if (!env.VT_API_KEY || !(await quotaLeft(env))) return null;
 
-  const r = await fetch(`https://www.virustotal.com/api/v3/files/${hash}`, {
-    headers: { "x-apikey": env.VT_API_KEY },
-    signal: AbortSignal.timeout(10_000),
-  });
-  await bumpQuota(env);
+    const r = await fetch(`https://www.virustotal.com/api/v3/files/${hash}`, {
+      headers: { "x-apikey": env.VT_API_KEY },
+      signal: AbortSignal.timeout(8000),
+    });
+    await bumpQuota(env);
 
-  let result: VtResult;
-  if (r.status === 404) {
-    result = { found: false, malicious: 0, total: 0 };
-  } else if (r.ok) {
-    const body = (await r.json()) as {
-      data?: { attributes?: { last_analysis_stats?: Record<string, number> } };
-    };
-    const stats = body.data?.attributes?.last_analysis_stats ?? {};
-    const malicious = (stats.malicious ?? 0) + (stats.suspicious ?? 0);
-    const total = Object.values(stats).reduce((a, b) => a + (Number(b) || 0), 0);
-    result = { found: true, malicious, total };
-  } else {
+    let result: VtResult;
+    if (r.status === 404) {
+      result = { found: false, malicious: 0, total: 0 };
+    } else if (r.ok) {
+      const body = (await r.json()) as {
+        data?: { attributes?: { last_analysis_stats?: Record<string, number> } };
+      };
+      const stats = body.data?.attributes?.last_analysis_stats ?? {};
+      const malicious = (stats.malicious ?? 0) + (stats.suspicious ?? 0);
+      const total = Object.values(stats).reduce((a, b) => a + (Number(b) || 0), 0);
+      result = { found: true, malicious, total };
+    } else {
+      return null;
+    }
+
+    await env.VT_CACHE.put(hash, JSON.stringify(result), {
+      expirationTtl: VT_CACHE_TTL,
+    }).catch(() => {});
+    return result;
+  } catch {
     return null;
   }
-
-  await env.VT_CACHE.put(hash, JSON.stringify(result), {
-    expirationTtl: VT_CACHE_TTL,
-  }).catch(() => {});
-  return result;
 }
 
 export async function lookupBinaries(
@@ -97,8 +101,10 @@ export async function lookupBinaries(
   }
 
   const findings: Finding[] = [];
-  for (const { path, hash } of targets) {
-    const vt = await lookup(hash, env);
+  const looked = await Promise.all(
+    targets.map((t) => lookup(t.hash, env).then((vt) => ({ ...t, vt }))),
+  );
+  for (const { path, hash, vt } of looked) {
     if (vt === null) {
       notes.push(`Could not check ${path} (VirusTotal quota/error).`);
       findings.push({

@@ -55,16 +55,21 @@ async function validateOne(
 export async function validateSecrets(
   candidates: SecretCandidate[],
 ): Promise<Map<string, SecretStatus>> {
-  const byValue = new Map<string, SecretCandidate>();
-  for (const c of candidates) byValue.set(`${c.type}:${c.value}`, c);
-  const unique = [...byValue.values()].slice(0, 10);
+  const groups = new Map<string, SecretCandidate[]>();
+  for (const c of candidates) {
+    const k = `${c.type}:${c.value}`;
+    const g = groups.get(k);
+    if (g) g.push(c);
+    else groups.set(k, [c]);
+  }
+  const unique = [...groups.values()].slice(0, 10);
 
   const result = new Map<string, SecretStatus>();
   await Promise.all(
-    unique.map(async (c) => {
-      const status = await validateOne(c.type, c.value);
-      if (status !== "unknown")
-        result.set(`${c.file}:${c.line}`, status);
+    unique.map(async (group) => {
+      const status = await validateOne(group[0].type, group[0].value);
+      if (status === "unknown") return;
+      for (const c of group) result.set(`${c.file}:${c.line}`, status);
     }),
   );
   return result;

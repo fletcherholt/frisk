@@ -27,7 +27,7 @@ export function toCycloneDX(report: Report): object {
       type: "library",
       name: c.name,
       version: c.version,
-      purl: `pkg:${PURL_TYPE[c.ecosystem] ?? c.ecosystem.toLowerCase()}/${c.name}@${c.version}`,
+      purl: `pkg:${PURL_TYPE[c.ecosystem] ?? c.ecosystem.toLowerCase()}/${c.name.replace(/^@/, "%40")}@${c.version}`,
     })),
   };
 }

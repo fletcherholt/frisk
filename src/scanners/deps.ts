@@ -122,6 +122,7 @@ export async function queryOsv(collected: Dep[]): Promise<Finding[]> {
     const vulns = res.vulns;
     if (!vulns || vulns.length === 0) return;
     const d = deps[i];
+    if (!d) return;
     const ids = vulns.map((v) => v.id);
     const malicious = ids.filter((id) => id.startsWith("MAL-"));
 

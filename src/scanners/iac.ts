@@ -77,7 +77,7 @@ export function scanIacText(path: string, text: string): Finding[] {
     applyRules(DOCKERFILE_RULES, path, text, soft, findings);
     if (/^\s*FROM\s/im.test(text) && !/^\s*USER\s/im.test(text)) {
       findings.push({
-        severity: soft ? "info" : "low",
+        severity: "info",
         category: "pattern",
         title: "Container runs as root",
         file: path,
