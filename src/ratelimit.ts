@@ -5,7 +5,7 @@ const WINDOW_SEC = 600; // 10 minutes
 
 /**
  * Fixed-window per-IP limiter keyed on CF-Connecting-IP.
- * NEVER use the leftmost X-Forwarded-For here — a client can spoof it.
+ * NEVER use the leftmost X-Forwarded-For here: a client can spoof it.
  * CF-Connecting-IP is set by Cloudflare and is trustworthy.
  */
 export async function checkRateLimit(

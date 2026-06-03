@@ -1,15 +1,6 @@
 import type { Env } from "./types";
 import { HttpError } from "./util";
 
-// Kept for the array-based scanner wrappers and unit tests. The streaming scan
-// path does not build these; it processes one file at a time.
-export interface RepoFile {
-  path: string;
-  bytes: Uint8Array;
-  text: string | null;
-  isBinary: boolean;
-}
-
 export const MAX_DECODE = 2 * 1024 * 1024; // don't decode text files larger than 2 MB
 
 // Extensions we treat as binary (never decode to text).

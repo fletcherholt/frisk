@@ -1,5 +1,4 @@
 import type { Env, Finding } from "../types";
-import type { RepoFile } from "../fetchRepo";
 
 // Executable/library formats worth a VirusTotal lookup.
 export const SCAN_BINARY_EXT =
@@ -58,16 +57,15 @@ async function lookup(hash: string, env: Env): Promise<VtResult | null> {
   if (r.status === 404) {
     result = { found: false, malicious: 0, total: 0 };
   } else if (r.ok) {
-    const stats =
-      ((await r.json()) as any)?.data?.attributes?.last_analysis_stats ?? {};
+    const body = (await r.json()) as {
+      data?: { attributes?: { last_analysis_stats?: Record<string, number> } };
+    };
+    const stats = body.data?.attributes?.last_analysis_stats ?? {};
     const malicious = (stats.malicious ?? 0) + (stats.suspicious ?? 0);
-    const total = Object.values(stats).reduce(
-      (a: number, b) => a + (Number(b) || 0),
-      0,
-    );
+    const total = Object.values(stats).reduce((a, b) => a + (Number(b) || 0), 0);
     result = { found: true, malicious, total };
   } else {
-    return null; // 401/429/5xx — don't cache, treat as "not checked"
+    return null; // 401/429/5xx: do not cache, treat as "not checked"
   }
 
   await env.VT_CACHE.put(hash, JSON.stringify(result), {
@@ -141,17 +139,4 @@ export async function lookupBinaries(
     }
   }
   return findings;
-}
-
-export async function scanBinaries(
-  files: RepoFile[],
-  env: Env,
-  notes: string[],
-): Promise<Finding[]> {
-  const bins = files.filter((f) => f.isBinary && SCAN_BINARY_EXT.test(f.path));
-  const targets: BinTarget[] = [];
-  for (const f of bins.slice(0, MAX_BINARIES)) {
-    targets.push({ path: f.path, hash: await sha256(f.bytes) });
-  }
-  return lookupBinaries(targets, bins.length, env, notes);
 }

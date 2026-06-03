@@ -33,7 +33,7 @@ export function snippetAt(text: string, index: number, max = 160): string {
   return line.length > max ? line.slice(0, max) + "…" : line;
 }
 
-/** Shannon entropy (bits per char) of a string — high for keys/tokens. */
+/** Shannon entropy (bits per char) of a string: high for keys/tokens. */
 export function shannon(s: string): number {
   if (!s) return 0;
   const freq: Record<string, number> = {};

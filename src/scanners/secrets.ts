@@ -1,5 +1,4 @@
 import type { Finding, Severity } from "../types";
-import type { RepoFile } from "../fetchRepo";
 import { lineOf, snippetAt, shannon, isLowSignalPath } from "../util";
 
 interface Rule {
@@ -61,8 +60,4 @@ export function scanSecretsText(path: string, text: string): Finding[] {
     }
   }
   return findings;
-}
-
-export function scanSecrets(files: RepoFile[]): Finding[] {
-  return files.flatMap((f) => (f.text ? scanSecretsText(f.path, f.text) : []));
 }

@@ -1,5 +1,4 @@
 import type { Finding } from "../types";
-import type { RepoFile } from "../fetchRepo";
 import { isLowSignalPath } from "../util";
 
 export interface Dep {
@@ -30,7 +29,7 @@ function parsePackageJson(text: string, file: string): Dep[] {
       }
     }
   } catch {
-    /* malformed package.json — ignore */
+    /* malformed package.json, ignore */
   }
   return out;
 }
@@ -142,9 +141,4 @@ export async function queryOsv(collected: Dep[]): Promise<Finding[]> {
     });
   });
   return findings;
-}
-
-export async function scanDeps(files: RepoFile[]): Promise<Finding[]> {
-  const deps = files.flatMap((f) => (f.text ? parseManifest(f.path, f.text) : []));
-  return queryOsv(deps);
 }
