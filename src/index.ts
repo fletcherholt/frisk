@@ -24,7 +24,7 @@ export async function scanRepo(
   const { files, truncated } = await fetchRepo(owner, repo, sha, env);
   const notes: string[] = [];
   if (truncated)
-    notes.push("Repository exceeded the size cap — only part of it was scanned.");
+    notes.push("Repository exceeded the size cap, so only part of it was scanned.");
 
   const findings = [
     ...scanSecrets(files),
@@ -80,7 +80,7 @@ export default {
     const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
     const rl = await checkRateLimit(ip, env);
     if (!rl.ok) {
-      const msg = "Rate limit exceeded — try again in a few minutes.";
+      const msg = "Rate limit exceeded. Try again in a few minutes.";
       return wantJson
         ? jsonResponse({ error: msg }, 429)
         : htmlResponse(errorPage(owner, repo, msg), 429);

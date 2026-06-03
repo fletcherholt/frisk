@@ -81,7 +81,7 @@ export async function scanBinaries(
 
   if (!env.VT_API_KEY) {
     notes.push(
-      `${bins.length} binary file(s) found but VirusTotal is not configured — not checked.`,
+      `${bins.length} binary file(s) found but VirusTotal is not configured, so they were not checked.`,
     );
     return [];
   }
@@ -104,7 +104,7 @@ export async function scanBinaries(
         category: "binary",
         title: "Binary not checked",
         file: f.path,
-        detail: `SHA-256 ${hash} — VirusTotal lookup unavailable.`,
+        detail: `SHA-256 ${hash}. VirusTotal lookup unavailable.`,
       });
       continue;
     }
@@ -130,7 +130,7 @@ export async function scanBinaries(
         category: "binary",
         title: "Unknown binary (not in VirusTotal)",
         file: f.path,
-        detail: `VirusTotal has never seen this file — committed binaries of unknown provenance are a risk. SHA-256 ${hash}.`,
+        detail: `VirusTotal has never seen this file. Committed binaries of unknown provenance are a risk. SHA-256 ${hash}.`,
       });
     }
   }

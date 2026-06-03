@@ -44,8 +44,8 @@ export async function resolveSha(
   );
   if (r.status === 404)
     throw new HttpError(404, "Repository not found, empty, or private.");
-  if (r.status === 403)
-    throw new HttpError(429, "GitHub rate limit hit — set GITHUB_TOKEN or retry later.");
+  if (r.status === 403 || r.status === 429)
+    throw new HttpError(429, "GitHub rate limit reached. Please try again in a few minutes.");
   if (!r.ok) throw new HttpError(502, `GitHub API error ${r.status}.`);
   const commits = (await r.json()) as Array<{ sha: string }>;
   if (!Array.isArray(commits) || commits.length === 0)
