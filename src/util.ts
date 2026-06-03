@@ -1,5 +1,5 @@
 const LOW_SIGNAL_DIR =
-  /(^|\/)(tests?|testdata|test[-_]data|specs?|__tests__|examples?|fixtures?|mocks?|samples?|docs?|docs_src|documentation|wiki|benches?|benchmarks?|e2e)\//i;
+  /(^|\/)(tests?|testdata|test[-_]data|specs?|__tests__|examples?|fixtures?|mocks?|samples?|docs?|docs_src|documentation|wiki|benches?|benchmarks?|e2e|vendor|vendored|third[-_]party|node_modules)\//i;
 const DOC_FILE = /\.(md|mdx|markdown|rst|adoc|txt)$|(^|\/)readme[^/]*$/i;
 
 export function isLowSignalPath(path: string): boolean {

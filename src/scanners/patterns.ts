@@ -59,10 +59,15 @@ export function scanPatternsText(path: string, text: string): Finding[] {
       if (seen.has(line)) continue;
       seen.add(line);
       const commented = isCommentAt(text, m.index);
+      const dampened = soft || commented;
       findings.push({
-        severity: commented ? downgrade(rule.severity) : rule.severity,
+        severity: dampened ? downgrade(rule.severity) : rule.severity,
         category: "pattern",
-        title: commented ? `${rule.title} (in a comment)` : rule.title,
+        title: commented
+          ? `${rule.title} (in a comment)`
+          : soft
+            ? `${rule.title} (in vendored, test or example code)`
+            : rule.title,
         file: path,
         line,
         detail: rule.detail,

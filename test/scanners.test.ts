@@ -97,4 +97,12 @@ describe("patterns comment dampening", () => {
     const f = scanPatternsText("a.js", "eval(atob('payload'))\n");
     expect(f[0].severity).toBe("critical");
   });
+  it("downgrades eval inside vendored third-party code", () => {
+    const f = scanPatternsText(
+      "vendor/firebug-lite/src/debug.js",
+      "value = eval(unescape(parts[1]));\n",
+    );
+    expect(f[0].severity).toBe("low");
+    expect(f[0].title).toContain("vendored");
+  });
 });
