@@ -15,7 +15,7 @@ const DOCKERFILE_RULES: Rule[] = [
 
 const INFRA_RULES: Rule[] = [
   { title: "Privileged container", severity: "medium", detail: "A privileged container has near-root access to the host. Common and often intentional in infrastructure manifests, worth confirming.", re: /^\s*privileged:\s*true/gim },
-  { title: "Mounts the Docker socket", severity: "high", detail: "Mounting /var/run/docker.sock gives the container full control of the Docker daemon, equivalent to host root.", re: /\/var\/run\/docker\.sock/g },
+  { title: "Mounts the Docker socket", severity: "medium", detail: "Mounting /var/run/docker.sock gives the container full control of the Docker daemon, equivalent to host root. Common in dev and CI tooling, worth confirming.", re: /\/var\/run\/docker\.sock/g },
   { title: "Host networking", severity: "medium", detail: "Host networking removes network isolation between the container and the host.", re: /^\s*(?:network_mode:\s*["']?host|hostNetwork:\s*true)/gim },
   { title: "hostPath volume mount", severity: "medium", detail: "A hostPath mount exposes a host directory to the pod.", re: /^\s*hostPath:/gim },
   { title: "Open to the whole internet (0.0.0.0/0)", severity: "high", detail: "An ingress rule allowing 0.0.0.0/0 exposes the resource to the entire internet.", re: /0\.0\.0\.0\/0/g },

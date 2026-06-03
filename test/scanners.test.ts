@@ -19,6 +19,18 @@ describe("secrets scanner", () => {
     expect(f.some((x) => x.severity === "critical")).toBe(true);
   });
 
+  it("treats a committed .key/.pem cert file as a review-level finding, not critical", () => {
+    const mojo = scanSecretsText("t/mojo/certs/server.key", "-----BEGIN PRIVATE KEY-----\nabc\n");
+    expect(mojo[0].severity).toBe("medium");
+    const grafana = scanSecretsText("devenv/docker/auth/key.pem", "-----BEGIN PRIVATE KEY-----\nabc\n");
+    expect(grafana[0].severity).toBe("medium");
+  });
+
+  it("keeps a private key in a .env or named-secret file critical", () => {
+    const env = scanSecretsText(".env.production", "-----BEGIN RSA PRIVATE KEY-----\nabc\n");
+    expect(env[0].severity).toBe("critical");
+  });
+
   it("treats a private key in source as an example, not a leak", () => {
     const f = scanSecretsText(
       "ext/tls/lib.rs",

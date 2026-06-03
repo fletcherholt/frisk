@@ -36,8 +36,8 @@ export interface SecretCandidate {
   line: number;
 }
 
-function isKeyFile(path: string): boolean {
-  return /(?:^|\/)id_(?:rsa|dsa|ecdsa|ed25519)$|\.(?:pem|key|p12|pfx|ppk|pk8|jks|keystore)$|(?:^|\/)\.env(?:\.|$)/i.test(
+function isStrongKeyLeak(path: string): boolean {
+  return /(?:^|\/)id_(?:rsa|dsa|ecdsa|ed25519)$|(?:^|\/)\.env(?:\.|$)|secret|priv(?:ate)?[-_]?key|prod(?:uction)?/i.test(
     path,
   );
 }
@@ -80,7 +80,8 @@ export function scanSecretsText(path: string, text: string): Finding[] {
       if (seen.has(key)) continue;
       seen.add(key);
       let base = rule.severity;
-      if (rule.id === "private-key" && !isKeyFile(path)) base = "medium";
+      if (rule.id === "private-key")
+        base = isStrongKeyLeak(path) ? "critical" : "medium";
       let severity = base;
       if (dampen)
         severity = base === "critical" ? "medium" : base === "high" ? "low" : "info";
