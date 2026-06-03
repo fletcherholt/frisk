@@ -160,13 +160,14 @@ export function renderReport(r: Report): string {
   const catNames: Record<string, string> = {
     secret: "Leaked secrets",
     pattern: "Suspicious code",
+    infrastructure: "Infrastructure",
     dependency: "Dependencies",
     binary: "Binaries (VirusTotal)",
     health: "Repo health",
   };
 
   let body = "";
-  for (const cat of ["secret", "pattern", "dependency", "binary", "health"]) {
+  for (const cat of ["secret", "pattern", "infrastructure", "dependency", "binary", "health"]) {
     const items = sorted.filter((f) => f.category === cat);
     if (items.length === 0) continue;
     body += `<div class="cat">${catNames[cat]} (${items.length})</div>`;

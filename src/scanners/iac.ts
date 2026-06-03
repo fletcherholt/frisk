@@ -60,7 +60,7 @@ function scanWorkflowInjection(
     if (danger) {
       findings.push({
         severity: soft ? "low" : "high",
-        category: "pattern",
+        category: "infrastructure",
         title: "Possible workflow script injection",
         file: path,
         line: i + 1,
@@ -91,7 +91,7 @@ function applyRules(
       seen.add(line);
       findings.push({
         severity: soft ? "low" : rule.severity,
-        category: "pattern",
+        category: "infrastructure",
         title: rule.title,
         file: path,
         line,
@@ -123,7 +123,7 @@ export function scanIacText(path: string, text: string): Finding[] {
     if (/^\s*FROM\s/im.test(text) && !/^\s*USER\s/im.test(text)) {
       findings.push({
         severity: "info",
-        category: "pattern",
+        category: "infrastructure",
         title: "Container runs as root",
         file: path,
         detail: "This Dockerfile sets no USER, so the container runs as root. Add a non-root USER.",

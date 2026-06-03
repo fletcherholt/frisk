@@ -116,13 +116,21 @@ export async function lookupBinaries(
       });
       continue;
     }
-    if (vt.found && vt.malicious > 0) {
+    if (vt.found && vt.malicious >= 2) {
       findings.push({
         severity: vt.malicious >= 5 ? "critical" : "high",
         category: "binary",
         title: `Malicious binary (${vt.malicious}/${vt.total} engines)`,
         file: path,
         detail: `VirusTotal flagged this file. SHA-256 ${hash}. https://www.virustotal.com/gui/file/${hash}`,
+      });
+    } else if (vt.found && vt.malicious === 1) {
+      findings.push({
+        severity: "low",
+        category: "binary",
+        title: `One engine flagged this binary (1/${vt.total})`,
+        file: path,
+        detail: `A single VirusTotal engine flagged this file, which is usually a false positive. SHA-256 ${hash}. https://www.virustotal.com/gui/file/${hash}`,
       });
     } else if (vt.found) {
       findings.push({

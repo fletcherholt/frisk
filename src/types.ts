@@ -8,7 +8,13 @@ export interface Env {
 
 export type Severity = "critical" | "high" | "medium" | "low" | "info";
 
-export type Category = "secret" | "pattern" | "dependency" | "binary" | "health";
+export type Category =
+  | "secret"
+  | "pattern"
+  | "infrastructure"
+  | "dependency"
+  | "binary"
+  | "health";
 
 export interface Finding {
   severity: Severity;
