@@ -130,6 +130,8 @@ button:hover{filter:brightness(1.08)}
 .foot{color:var(--overlay);font-size:12px;text-align:center}
 .powered{margin-top:8px;color:var(--overlay);font-size:12px;text-align:center}
 .copy{margin-top:10px;color:var(--surface1);font-size:12px;text-align:center}
+.copy .kofi{color:#f5c2e7}
+.copy .kofi:hover{color:#f5c2e7;text-decoration:underline}
 `;
 
 function shell(inner: string, landing = false, title = "friskit"): string {
@@ -143,7 +145,7 @@ function shell(inner: string, landing = false, title = "friskit"): string {
 <footer class="bottom">
 <div class="foot">Code is never stored. Fetched and scanned in memory at the edge. Results are heuristic. · <a href="/">scan another repo</a></div>
 <div class="powered">binary checks powered by <a href="https://www.virustotal.com">VirusTotal</a> · dependency data from <a href="https://osv.dev">OSV</a></div>
-<div class="copy">© 2026 Fletcher Holt · <a href="https://github.com/fletcherholt">github.com/fletcherholt</a></div>
+<div class="copy">© 2026 Fletcher Holt · <a href="https://github.com/fletcherholt">github.com/fletcherholt</a> · <a class="kofi" href="https://ko-fi.com/fletcherholt">support on Ko-fi</a></div>
 </footer>
 </div></body></html>`;
 }
