@@ -91,6 +91,10 @@ button:hover{filter:brightness(1.08)}
 .row .dot{width:9px;height:9px;border-radius:50%;margin-top:7px;flex:none}
 .row b{color:var(--text);font-weight:600}
 .row span{color:var(--subtext0);font-size:14px}
+.faq{margin-top:18px}
+.qa{padding:12px 2px;border-bottom:1px solid var(--surface0)}
+.qa .q{color:var(--text);font-weight:600;font-size:14px}
+.qa .a{color:var(--subtext0);font-size:14px;margin-top:5px;line-height:1.55}
 
 .badge{display:inline-block;padding:12px 20px;border-radius:10px;font-weight:800;font-size:18px;letter-spacing:.5px;color:var(--crust)}
 .counts{margin:16px 0 8px;display:flex;gap:8px;flex-wrap:wrap}
@@ -150,6 +154,43 @@ const JSON_LD = JSON.stringify({
   ],
 });
 
+const FAQ: { q: string; a: string }[] = [
+  {
+    q: "Is it safe to clone a GitHub repo?",
+    a: "Cloning is usually fine, but installing or running an unknown repo can execute its code on your machine through install scripts and build steps. frisk checks a repository for leaked secrets, malware, malicious packages and known vulnerabilities first, so you can decide before you clone or run it.",
+  },
+  {
+    q: "How do I scan a GitHub repository for secrets or malware?",
+    a: "Swap github.com for friskit.dev in any repository URL, or paste the repo on the home page. frisk reads the latest commit, scans it and returns a report in about a second. There is no login and nothing to install.",
+  },
+  {
+    q: "Is frisk free?",
+    a: "Yes. frisk is completely free, needs no account, and the source is open on GitHub.",
+  },
+  {
+    q: "Does frisk store my code?",
+    a: "No. Code is streamed, scanned in memory and never stored. Detected secrets are checked against their provider to see whether they are still live, and committed binaries are hashed for VirusTotal. Nothing else leaves the edge.",
+  },
+  {
+    q: "What does frisk check for?",
+    a: "Leaked secrets and API keys, obfuscated or malicious code, credential and wallet stealers, malicious and typosquatted packages, vulnerable dependencies, risky infrastructure configuration, and committed binaries flagged on VirusTotal.",
+  },
+  {
+    q: "Why does scanning a security tool come back critical?",
+    a: "A scanner's own source and tests contain the exact patterns it hunts for, so pointing frisk at a security tool, including frisk itself, can report critical. Open the flagged files and judge for yourself. frisk never reaches a critical verdict from a single heuristic match.",
+  },
+];
+
+const FAQ_LD = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+});
+
 function seoHead(landing: boolean, canonical: string): string {
   if (!landing) return `<meta name="robots" content="noindex,follow">`;
   return `<meta name="description" content="${escapeHtml(SEO_DESC)}">
@@ -168,7 +209,8 @@ function seoHead(landing: boolean, canonical: string): string {
 <meta name="twitter:title" content="${escapeHtml(SEO_TITLE)}">
 <meta name="twitter:description" content="${escapeHtml(SEO_DESC)}">
 <meta name="twitter:image" content="${SITE}/og.svg">
-<script type="application/ld+json">${JSON_LD}</script>`;
+<script type="application/ld+json">${JSON_LD}</script>
+<script type="application/ld+json">${FAQ_LD}</script>`;
 }
 
 function shell(inner: string, landing = false, title = "friskit"): string {
@@ -279,6 +321,13 @@ export function landingPage(): string {
     <div class="row"><span class="dot" style="background:#cba6f7"></span><div><b>Bad binaries</b><br><span>Committed executables hashed and looked up on VirusTotal.</span></div></div>
     <div class="row"><span class="dot" style="background:#89b4fa"></span><div><b>Infrastructure</b><br><span>Dockerfile, compose, Terraform, Kubernetes and GitHub Actions misconfigurations.</span></div></div>
     <div class="row"><span class="dot" style="background:#94e2d5"></span><div><b>Repo health</b><br><span>OpenSSF Scorecard signals, plus a CycloneDX SBOM you can download.</span></div></div>
+  </div>
+</details>
+
+<details class="explain faq">
+  <summary>Common questions</summary>
+  <div class="checks">
+    ${FAQ.map((f) => `<div class="qa"><div class="q">${escapeHtml(f.q)}</div><div class="a">${escapeHtml(f.a)}</div></div>`).join("")}
   </div>
 </details>
 <script>
