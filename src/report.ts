@@ -66,7 +66,8 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 .logo-hint{display:block;margin-top:8px;font-size:13px;font-weight:600;color:var(--blue);opacity:0;transform:translateY(-4px);transition:opacity .25s ease,transform .25s ease;pointer-events:none}
 .logobar:hover .logo-hint{opacity:1;transform:none}
 .logo b{color:var(--mauve)}
-.tag{color:var(--subtext0);margin-top:6px;font-size:15px;text-align:center}
+.tag{color:var(--subtext0);margin:6px 0 0;font-size:15px;font-weight:600;text-align:center}
+.lede{max-width:540px;margin:10px auto 0;color:var(--overlay);font-size:14px;line-height:1.55;text-align:center}
 
 h1{font-size:20px;margin:26px 0 4px;font-weight:600;word-break:break-all}
 .sub{color:var(--overlay);font-size:13px;margin-bottom:20px}
@@ -123,10 +124,58 @@ button:hover{filter:brightness(1.08)}
 .copy .kofi:hover{color:#f5c2e7;text-decoration:underline}
 `;
 
+const SITE = "https://friskit.dev";
+const SEO_TITLE =
+  "frisk — scan any GitHub repo for secrets, malware & vulnerabilities";
+const SEO_DESC =
+  "Free, no-login security scanner for any public GitHub repository. Swap github.com for friskit.dev, or paste a repo, to check for leaked secrets, malware, malicious packages and vulnerable dependencies in seconds — no clone required.";
+const JSON_LD = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "frisk",
+  alternateName: "friskit",
+  url: SITE,
+  applicationCategory: "SecurityApplication",
+  operatingSystem: "Any",
+  browserRequirements: "Requires JavaScript",
+  description: SEO_DESC,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  creator: { "@type": "Person", name: "Fletcher Holt" },
+  featureList: [
+    "Leaked secret detection with live credential validation",
+    "Malware and stealer pattern detection",
+    "Malicious package detection via OSV",
+    "Vulnerable dependency scanning",
+    "Committed binary scanning via VirusTotal",
+  ],
+});
+
+function seoHead(landing: boolean, canonical: string): string {
+  if (!landing) return `<meta name="robots" content="noindex,follow">`;
+  return `<meta name="description" content="${escapeHtml(SEO_DESC)}">
+<link rel="canonical" href="${canonical}">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="frisk">
+<meta property="og:title" content="${escapeHtml(SEO_TITLE)}">
+<meta property="og:description" content="${escapeHtml(SEO_DESC)}">
+<meta property="og:url" content="${canonical}">
+<meta property="og:image" content="${SITE}/og.svg">
+<meta property="og:image:type" content="image/svg+xml">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${escapeHtml(SEO_TITLE)}">
+<meta name="twitter:description" content="${escapeHtml(SEO_DESC)}">
+<meta name="twitter:image" content="${SITE}/og.svg">
+<script type="application/ld+json">${JSON_LD}</script>`;
+}
+
 function shell(inner: string, landing = false, title = "friskit"): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(title)}</title>
+<title>${escapeHtml(landing && title === "friskit" ? SEO_TITLE : title)}</title>
+${seoHead(landing, `${SITE}/`)}
 <link rel="icon" href="${FAVICON}">
 <style>${CSS}</style></head>
 <body><div class="page${landing ? " page-landing" : ""}">
@@ -196,13 +245,26 @@ ${r.findings.length === 0 ? '<div class="clean">Nothing flagged. No secrets, sus
   return shell(inner, false, `✓ ${r.owner}/${r.repo}`);
 }
 
+export function ogImage(): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<rect width="1200" height="630" fill="#1e1e2e"/>
+<rect x="0" y="0" width="1200" height="8" fill="#cba6f7"/>
+<text x="80" y="250" font-family="Helvetica,Arial,sans-serif" font-size="150" font-weight="800" fill="#cdd6f4">fr<tspan fill="#cba6f7">i</tspan>sk</text>
+<text x="84" y="330" font-family="Helvetica,Arial,sans-serif" font-size="44" font-weight="600" fill="#a6adc8">frisk it before you clone it.</text>
+<text x="84" y="430" font-family="Helvetica,Arial,sans-serif" font-size="34" fill="#6c7086">Free, no-login security scan for any public GitHub repo —</text>
+<text x="84" y="478" font-family="Helvetica,Arial,sans-serif" font-size="34" fill="#6c7086">secrets, malware, malicious packages &amp; vulnerable deps.</text>
+<text x="84" y="566" font-family="Menlo,monospace" font-size="30" fill="#89b4fa">github.com/owner/repo  →  friskit.dev/owner/repo</text>
+</svg>`;
+}
+
 export function landingPage(): string {
   const inner = `
 <div class="hero">
 <div class="logobar"><a class="logo" href="https://github.com/fletcherholt/frisk">frisk</a><span class="logo-hint">check out the repo ↗</span></div>
-<div class="tag">frisk it before you clone it.</div>
+<h1 class="tag">frisk it before you clone it.</h1>
+<p class="lede">A free, no-login security scanner for any public GitHub repo. Check any repository for leaked secrets, malware, malicious packages and vulnerable dependencies before you clone or run it.</p>
 <form class="box" onsubmit="go(event)">
-  <input id="u" placeholder="github.com/owner/repo" autofocus autocapitalize="off" autocomplete="off" spellcheck="false">
+  <input id="u" placeholder="github.com/owner/repo" autofocus autocapitalize="off" autocomplete="off" spellcheck="false" aria-label="GitHub repository to scan">
   <button type="submit">frisk</button>
 </form>
 <div class="sub" style="margin-top:12px">Or just swap <code>github.com</code> → <code>friskit.dev</code> in any repo URL.</div>

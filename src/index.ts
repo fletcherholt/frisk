@@ -37,7 +37,9 @@ import {
   errorPage,
   scanningPage,
   busyPage,
+  ogImage,
 } from "./report";
+import { FAVICON } from "./favicon";
 import { htmlResponse, jsonResponse, HttpError } from "./util";
 
 function busyResponse(wantJson: boolean, owner: string, repo: string): Response {
@@ -214,6 +216,27 @@ export default {
     if (path === "" || path === "index.html")
       return htmlResponse(landingPage());
     if (path === "favicon.ico") return new Response(null, { status: 204 });
+
+    if (path === "robots.txt")
+      return new Response(
+        `User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: https://friskit.dev/sitemap.xml\n`,
+        { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" } },
+      );
+    if (path === "sitemap.xml")
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n<url><loc>https://friskit.dev/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>\n</urlset>\n`,
+        { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=86400" } },
+      );
+    if (path === "og.svg")
+      return new Response(ogImage(), {
+        headers: { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=86400" },
+      });
+    if (path === "icon.png" || path === "favicon.png") {
+      const bytes = Uint8Array.from(atob(FAVICON.split(",")[1]), (c) => c.charCodeAt(0));
+      return new Response(bytes, {
+        headers: { "content-type": "image/png", "cache-control": "public, max-age=604800" },
+      });
+    }
 
     const sbomMatch = path.match(/^api\/sbom\/([^/]+)\/([^/]+)(?:\/.*)?$/);
     const apiMatch = path.match(/^api\/scan\/([^/]+)\/([^/]+)(?:\/.*)?$/);
