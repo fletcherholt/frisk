@@ -22,11 +22,14 @@ export function scoreFindings(findings: Finding[]): Score {
     points += WEIGHT[f.severity];
   }
 
+  // Level follows the most severe finding, with escalation only on real volume.
+  // A pile of medium findings (typically vulnerable deps) should not read as
+  // critical on an otherwise healthy repo.
   let level: Score["level"];
-  if (counts.critical > 0 || points >= 100) level = "critical";
-  else if (counts.high > 0 || points >= 40) level = "high";
-  else if (counts.medium > 0 || points >= 10) level = "medium";
-  else if (points > 0) level = "low";
+  if (counts.critical > 0 || counts.high >= 3) level = "critical";
+  else if (counts.high >= 1 || counts.medium >= 12) level = "high";
+  else if (counts.medium >= 1) level = "medium";
+  else if (counts.low >= 1) level = "low";
   else level = "clean";
 
   return { level, points, counts };

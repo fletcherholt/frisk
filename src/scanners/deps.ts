@@ -84,7 +84,16 @@ function collectDeps(files: RepoFile[]): Dep[] {
     else if (/(^|\/)go\.mod$/.test(f.path)) deps.push(...parseGoMod(f.text, f.path));
     else if (/(^|\/)Cargo\.toml$/.test(f.path)) deps.push(...parseCargo(f.text, f.path));
   }
-  return deps.slice(0, MAX_QUERIES);
+  // Dedupe identical packages (same name, version and ecosystem) so a dep
+  // listed in several manifests or sections is only reported once.
+  const seen = new Set<string>();
+  const unique = deps.filter((d) => {
+    const key = `${d.ecosystem}:${d.name}@${d.version}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return unique.slice(0, MAX_QUERIES);
 }
 
 export async function scanDeps(files: RepoFile[]): Promise<Finding[]> {

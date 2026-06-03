@@ -30,7 +30,7 @@ const RULES: Rule[] = [
 ];
 
 // Files where matches are almost always examples/tests, not real leaks.
-const LOW_SIGNAL = /(^|\/)(test|tests|spec|example|examples|fixture|fixtures|mock|mocks|sample|samples|__tests__)\//i;
+const LOW_SIGNAL = /(^|\/)(test|tests|spec|specs|example|examples|fixture|fixtures|mock|mocks|sample|samples|__tests__|docs?|wiki|bench|benches|benchmark|benchmarks|e2e)\//i;
 
 export function scanSecrets(files: RepoFile[]): Finding[] {
   const findings: Finding[] = [];
