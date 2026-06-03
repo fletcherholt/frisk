@@ -30,6 +30,19 @@ const CI_BUILD = /(^|\/)\.github\/|(^|\/)Dockerfile/i;
 
 const INSTALL_HOOKS = /"(pre|post)?install"\s*:/g;
 
+const COMMENT_LINE = /^\s*(?:\/\/|\/\*|\*\/?|#|<!--|;|--)/;
+
+function isCommentAt(text: string, index: number): boolean {
+  const start = text.lastIndexOf("\n", index) + 1;
+  let end = text.indexOf("\n", index);
+  if (end === -1) end = text.length;
+  return COMMENT_LINE.test(text.slice(start, end));
+}
+
+function downgrade(s: Severity): Severity {
+  return s === "critical" || s === "high" ? "low" : "info";
+}
+
 export function scanPatternsText(path: string, text: string): Finding[] {
   const findings: Finding[] = [];
   const soft = isLowSignalPath(path) || CI_BUILD.test(path);
@@ -45,10 +58,11 @@ export function scanPatternsText(path: string, text: string): Finding[] {
       const line = lineOf(text, m.index);
       if (seen.has(line)) continue;
       seen.add(line);
+      const commented = isCommentAt(text, m.index);
       findings.push({
-        severity: rule.severity,
+        severity: commented ? downgrade(rule.severity) : rule.severity,
         category: "pattern",
-        title: rule.title,
+        title: commented ? `${rule.title} (in a comment)` : rule.title,
         file: path,
         line,
         detail: rule.detail,

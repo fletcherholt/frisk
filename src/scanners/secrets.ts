@@ -36,6 +36,12 @@ export interface SecretCandidate {
   line: number;
 }
 
+function isKeyFile(path: string): boolean {
+  return /(?:^|\/)id_(?:rsa|dsa|ecdsa|ed25519)$|\.(?:pem|key|p12|pfx|ppk|pk8|jks|keystore)$|(?:^|\/)\.env(?:\.|$)/i.test(
+    path,
+  );
+}
+
 export function validatableSecrets(path: string, text: string): SecretCandidate[] {
   const out: SecretCandidate[] = [];
   for (const rule of RULES) {
@@ -73,9 +79,11 @@ export function scanSecretsText(path: string, text: string): Finding[] {
       const key = `${rule.id}:${line}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      let severity = rule.severity;
+      let base = rule.severity;
+      if (rule.id === "private-key" && !isKeyFile(path)) base = "medium";
+      let severity = base;
       if (dampen)
-        severity = severity === "critical" ? "medium" : severity === "high" ? "low" : "info";
+        severity = base === "critical" ? "medium" : base === "high" ? "low" : "info";
       findings.push({
         severity,
         category: "secret",

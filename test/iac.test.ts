@@ -43,6 +43,24 @@ describe("iac scanner", () => {
     expect(has(f, "script injection")).toBe(true);
   });
 
+  it("does not flag head_ref used in a checkout ref", () => {
+    const wf =
+      "jobs:\n  x:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.head_ref }}\n";
+    expect(has(scanIacText(".github/workflows/ci.yml", wf), "script injection")).toBe(false);
+  });
+
+  it("does not flag a PR title routed through env", () => {
+    const wf =
+      "jobs:\n  x:\n    steps:\n      - env:\n          PR_TITLE: ${{ github.event.pull_request.title }}\n        run: echo \"$PR_TITLE\"\n";
+    expect(has(scanIacText(".github/workflows/ci.yml", wf), "script injection")).toBe(false);
+  });
+
+  it("flags a PR title interpolated inside a run block", () => {
+    const wf =
+      "jobs:\n  x:\n    steps:\n      - run: |\n          echo ${{ github.event.pull_request.title }}\n";
+    expect(has(scanIacText(".github/workflows/ci.yml", wf), "script injection")).toBe(true);
+  });
+
   it("ignores non-infra files", () => {
     expect(scanIacText("src/app.js", "const x = 1;").length).toBe(0);
   });

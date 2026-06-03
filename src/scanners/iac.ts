@@ -24,8 +24,53 @@ const INFRA_RULES: Rule[] = [
 
 const WORKFLOW_RULES: Rule[] = [
   { title: "Workflow triggered by pull_request_target", severity: "low", detail: "pull_request_target runs with repository secrets while checking out untrusted PR code, a common privilege-escalation path. Review it carefully.", re: /pull_request_target/g },
-  { title: "Possible workflow script injection", severity: "high", detail: "Interpolating an attacker-controlled field straight into a run step lets a PR or issue inject shell commands. Pass it through an env var instead.", re: /\$\{\{\s*github\.(?:event\.(?:issue|pull_request|comment|review)\.(?:title|body)|head_ref)[^}]*\}\}/g },
 ];
+
+const INJECT_FIELD =
+  /\$\{\{\s*github\.(?:event\.(?:issue|pull_request|comment|review)\.(?:title|body)|event\.pull_request\.head\.ref|head_ref)[^}]*\}\}/;
+
+function scanWorkflowInjection(
+  path: string,
+  text: string,
+  soft: boolean,
+  findings: Finding[],
+): void {
+  const lines = text.split("\n");
+  let inRun = false;
+  let runIndent = -1;
+  let count = 0;
+  let offset = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineStart = offset;
+    offset += line.length + 1;
+    if (count >= 10 || !line.trim()) continue;
+    const indent = line.length - line.trimStart().length;
+    const runMatch = /^\s*(?:-\s+)?run:\s*(.*)$/.exec(line);
+    let danger = false;
+    if (runMatch) {
+      runIndent = indent;
+      const rest = runMatch[1].trim();
+      danger = INJECT_FIELD.test(line);
+      inRun = rest === "" || rest.startsWith("|") || rest.startsWith(">");
+    } else if (inRun) {
+      if (indent > runIndent) danger = INJECT_FIELD.test(line);
+      else inRun = false;
+    }
+    if (danger) {
+      findings.push({
+        severity: soft ? "low" : "high",
+        category: "pattern",
+        title: "Possible workflow script injection",
+        file: path,
+        line: i + 1,
+        detail: "Interpolating an attacker-controlled field straight into a run step lets a PR or issue inject shell commands. Pass it through an env var instead.",
+        snippet: snippetAt(text, lineStart),
+      });
+      count++;
+    }
+  }
+}
 
 function applyRules(
   rules: Rule[],
@@ -86,7 +131,10 @@ export function scanIacText(path: string, text: string): Finding[] {
     }
   }
   if (isYaml || isTf) applyRules(INFRA_RULES, path, text, soft, findings);
-  if (isWorkflow) applyRules(WORKFLOW_RULES, path, text, soft, findings);
+  if (isWorkflow) {
+    applyRules(WORKFLOW_RULES, path, text, soft, findings);
+    scanWorkflowInjection(path, text, soft, findings);
+  }
 
   return findings;
 }

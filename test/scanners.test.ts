@@ -19,6 +19,15 @@ describe("secrets scanner", () => {
     expect(f.some((x) => x.severity === "critical")).toBe(true);
   });
 
+  it("treats a private key in source as an example, not a leak", () => {
+    const f = scanSecretsText(
+      "ext/tls/lib.rs",
+      '/// Starts with -----BEGIN PRIVATE KEY-----\n',
+    );
+    expect(f[0].title).toContain("Private key");
+    expect(f[0].severity).toBe("medium");
+  });
+
   it("dampens secrets in test/example paths", () => {
     const real = scanSecretsText("src/k.js", 'k="AKIAIOSFODNN7EXAMPLE"');
     const test = scanSecretsText("tests/k.js", 'k="AKIAIOSFODNN7EXAMPLE"');
@@ -74,5 +83,18 @@ describe("scoring", () => {
       },
     ]);
     expect(s.level).toBe("critical");
+  });
+});
+
+describe("patterns comment dampening", () => {
+  it("downgrades a sensitive path that sits in a comment", () => {
+    const f = scanPatternsText("cli/pack.rs", "/// guards against a symlink to ~/.ssh/id_rsa here\n");
+    expect(f.length).toBe(1);
+    expect(f[0].severity).toBe("low");
+    expect(f[0].title).toContain("comment");
+  });
+  it("still flags a real eval in code", () => {
+    const f = scanPatternsText("a.js", "eval(atob('payload'))\n");
+    expect(f[0].severity).toBe("critical");
   });
 });
