@@ -97,6 +97,20 @@ describe("patterns comment dampening", () => {
     const f = scanPatternsText("a.js", "eval(atob('payload'))\n");
     expect(f[0].severity).toBe("critical");
   });
+  it("does not flag the bare word MetaMask in UI or localization text", () => {
+    const f = scanPatternsText(
+      "app/_locales/en/messages.json",
+      '{ "appName": { "message": "MetaMask" }, "intro": { "message": "Connect your Electrum wallet" } }',
+    );
+    expect(f.some((x) => x.title.includes("wallet"))).toBe(false);
+  });
+  it("flags a wallet stealer reaching into profile storage", () => {
+    const f = scanPatternsText(
+      "stealer.py",
+      'path = os.path.expanduser("~/AppData/Roaming/Exodus/exodus.wallet")',
+    );
+    expect(f.some((x) => x.title.includes("wallet storage"))).toBe(true);
+  });
   it("downgrades eval inside vendored third-party code", () => {
     const f = scanPatternsText(
       "vendor/firebug-lite/src/debug.js",

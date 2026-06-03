@@ -59,6 +59,7 @@ const MAX_FILES = 7000;
 const MAX_BYTES = 90 * 1024 * 1024;
 const MAX_BINARY_BYTES = 32 * 1024 * 1024;
 const MAX_FINDINGS = 1000;
+const SCAN_BUDGET_MS = 20000;
 
 const DECODER = new TextDecoder();
 
@@ -89,12 +90,17 @@ export async function runScan(
   const secretCandidates: SecretCandidate[] = [];
   const notes: string[] = [];
 
+  const deadline = Date.now() + SCAN_BUDGET_MS;
   for await (const f of streamTar(
     stream,
     classify,
     { maxFiles: MAX_FILES, maxBytes: MAX_BYTES },
     stats,
   )) {
+    if (Date.now() > deadline) {
+      stats.truncated = true;
+      break;
+    }
     if (f.kind === "binary") {
       binCount++;
       if (binTargets.length < MAX_BINARIES)

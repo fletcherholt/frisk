@@ -14,7 +14,7 @@ const DOCKERFILE_RULES: Rule[] = [
 ];
 
 const INFRA_RULES: Rule[] = [
-  { title: "Privileged container", severity: "high", detail: "A privileged container has near-root access to the host.", re: /^\s*privileged:\s*true/gim },
+  { title: "Privileged container", severity: "medium", detail: "A privileged container has near-root access to the host. Common and often intentional in infrastructure manifests, worth confirming.", re: /^\s*privileged:\s*true/gim },
   { title: "Mounts the Docker socket", severity: "high", detail: "Mounting /var/run/docker.sock gives the container full control of the Docker daemon, equivalent to host root.", re: /\/var\/run\/docker\.sock/g },
   { title: "Host networking", severity: "medium", detail: "Host networking removes network isolation between the container and the host.", re: /^\s*(?:network_mode:\s*["']?host|hostNetwork:\s*true)/gim },
   { title: "hostPath volume mount", severity: "medium", detail: "A hostPath mount exposes a host directory to the pod.", re: /^\s*hostPath:/gim },
