@@ -11,6 +11,7 @@ import { streamTar, type FileKind, type TarStats } from "./tar";
 import { scanSecretsText } from "./scanners/secrets";
 import { scanPatternsText } from "./scanners/patterns";
 import { parseManifest, isManifest, queryOsv, type Dep } from "./scanners/deps";
+import { scanTyposquat } from "./scanners/typosquat";
 import {
   SCAN_BINARY_EXT,
   MAX_BINARIES,
@@ -95,8 +96,12 @@ export async function runScan(
     }
   }
 
-  findings.push(...(await queryOsv(deps)));
-  findings.push(...(await lookupBinaries(binTargets, binCount, env, notes)));
+  const [osv, typo, bins] = await Promise.all([
+    queryOsv(deps),
+    scanTyposquat(deps),
+    lookupBinaries(binTargets, binCount, env, notes),
+  ]);
+  findings.push(...osv, ...typo, ...bins);
 
   if (stats.truncated)
     notes.push("Repository is very large, so only part of it was scanned.");
