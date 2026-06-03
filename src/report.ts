@@ -123,8 +123,9 @@ button:hover{filter:brightness(1.08)}
 @keyframes spin{to{transform:rotate(1turn)}}
 .scan-logo{position:relative;z-index:1;font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--text);animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.8;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
-.scan-label{margin-top:26px;text-align:center;color:var(--subtext0);font-size:15px}
+.scan-label{margin-top:26px;text-align:center;color:var(--subtext0);font-size:15px;line-height:1.7}
 .scan-label b{color:var(--text);font-weight:600}
+.dim{color:var(--overlay);font-size:13px}
 .dots::after{content:"";animation:dots 1.4s steps(1,end) infinite}
 @keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
 .foot{color:var(--overlay);font-size:12px;text-align:center}
@@ -236,6 +237,7 @@ if(m)location.href='/'+m[1]+'/'+m[2].replace(/\\.git$/,'');}
 
 export function scanningPage(owner: string, repo: string): string {
   const path = JSON.stringify(`/${owner}/${repo}`);
+  const label = `scanning <b>${escapeHtml(owner)}/${escapeHtml(repo)}</b><span class="dots"></span>`;
   const inner = `
 <div class="hero">
   <div class="scanner">
@@ -243,21 +245,52 @@ export function scanningPage(owner: string, repo: string): string {
     <span class="ring ring2"></span>
     <span class="scan-logo">frisk</span>
   </div>
-  <div class="scan-label">scanning <b>${escapeHtml(owner)}/${escapeHtml(repo)}</b><span class="dots"></span></div>
+  <div class="scan-label" id="lbl">${label}</div>
 </div>
 <script>
 (function(){
   var p=${path};
   var seq=['','.','..','...','..','.'];var i=0;   // dots grow then shrink
-  setInterval(function(){document.title='scanning'+seq[i];i=(i+1)%seq.length;},350);
+  var title='scanning';
+  setInterval(function(){document.title=title+seq[i];i=(i+1)%seq.length;},350);
   var delay=100+Math.random()*3400;            // hold 0.1s to 3.5s
-  var t0=Date.now();
+  var t0=Date.now(), tries=0;
+  var lbl=document.getElementById('lbl');
   function done(){location.replace(p+'?view=1');}
   function go(){setTimeout(done,Math.max(0,delay-(Date.now()-t0)));}
-  fetch('/api/scan'+p).then(function(r){r.ok?go():done();},done);
+  function waiting(){
+    title='waiting';
+    lbl.innerHTML='lots of people are scanning right now<br><span class="dim">holding your place · this starts automatically</span>';
+  }
+  function attempt(){
+    fetch('/api/scan'+p).then(function(r){
+      if(r.status===503){
+        if(++tries>30){lbl.innerHTML='still very busy<br><span class="dim">please try again in a few minutes</span>';title='busy';return;}
+        waiting();
+        setTimeout(attempt, 4000+Math.random()*3000);   // queue: retry until a slot frees
+        return;
+      }
+      r.ok ? go() : done();
+    }, function(){ if(++tries>30){done();return;} setTimeout(attempt, 3000); });
+  }
+  attempt();
 })();
 </script>`;
   return shell(inner, true, "scanning");
+}
+
+export function busyPage(owner: string, repo: string): string {
+  const inner = `
+<div class="hero">
+  <div class="scanner">
+    <span class="ring"></span>
+    <span class="ring ring2"></span>
+    <span class="scan-logo">frisk</span>
+  </div>
+  <div class="scan-label">frisk is busy right now<br><span class="dim">lots of people are scanning ${escapeHtml(owner)}/${escapeHtml(repo)} and others. this page retries automatically.</span></div>
+</div>
+<script>setTimeout(function(){location.reload();}, 6000+Math.floor(Math.random()*5000));</script>`;
+  return shell(inner, true, "busy");
 }
 
 export function errorPage(owner: string, repo: string, message: string): string {

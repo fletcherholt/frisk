@@ -19,9 +19,28 @@ import {
 } from "./scanners/binaries";
 import { scoreFindings } from "./score";
 import { getCached, putCached } from "./cache";
-import { checkRateLimit } from "./ratelimit";
-import { renderReport, landingPage, errorPage, scanningPage } from "./report";
+import { checkRateLimit, checkGlobalCapacity } from "./ratelimit";
+import {
+  renderReport,
+  landingPage,
+  errorPage,
+  scanningPage,
+  busyPage,
+} from "./report";
 import { htmlResponse, jsonResponse, HttpError } from "./util";
+
+function busyResponse(wantJson: boolean, owner: string, repo: string): Response {
+  if (wantJson)
+    return new Response(JSON.stringify({ busy: true }), {
+      status: 503,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "retry-after": "5",
+        "cache-control": "no-store",
+      },
+    });
+  return htmlResponse(busyPage(owner, repo), 503);
+}
 
 // GitHub owner and repo names are limited to this set. Validating against it
 // rejects junk paths and blocks any HTML/script injection through the URL.
@@ -146,12 +165,19 @@ export default {
             ? jsonResponse({ error: msg }, 429)
             : htmlResponse(errorPage(owner, repo, msg), 429);
         }
+        // Site-wide capacity: ask the user to wait when we are slammed.
+        if (!(await checkGlobalCapacity(env)))
+          return busyResponse(wantJson, owner, repo);
         report = await runScan(owner, repo, sha, env, ctx);
       }
       return wantJson
         ? jsonResponse(report)
         : htmlResponse(renderReport(report));
     } catch (e) {
+      // A GitHub budget exhaustion means the shared capacity is used up, which
+      // for users is the same "too busy, wait" situation.
+      if (e instanceof HttpError && e.status === 429)
+        return busyResponse(wantJson, owner, repo);
       const status = e instanceof HttpError ? e.status : 500;
       const msg =
         e instanceof Error ? e.message : "Unexpected error during scan.";
