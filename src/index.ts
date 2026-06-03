@@ -6,7 +6,7 @@ import {
   BINARY_EXT,
   MAX_DECODE,
 } from "./fetchRepo";
-import { isLowSignalPath } from "./util";
+import { isLowSignalPath, isGeneratedFile } from "./util";
 import { streamTar, type FileKind, type TarStats } from "./tar";
 import {
   scanSecretsText,
@@ -58,7 +58,7 @@ function busyResponse(wantJson: boolean, owner: string, repo: string): Response 
 const NAME = /^[A-Za-z0-9._-]+$/;
 const INDEXNOW_KEY = "8f2b6d4a9c1e7035f4a8b2d6c0e3197a";
 
-const MAX_FILES = 7000;
+const MAX_FILES = 10000;
 const MAX_BYTES = 90 * 1024 * 1024;
 const MAX_BINARY_BYTES = 32 * 1024 * 1024;
 const MAX_FINDINGS = 1000;
@@ -67,6 +67,7 @@ const SCAN_BUDGET_MS = 20000;
 const DECODER = new TextDecoder();
 
 function classify(name: string, size: number): FileKind | "skip" {
+  if (isGeneratedFile(name)) return "skip";
   if (SCAN_BINARY_EXT.test(name)) {
     if (isLowSignalPath(name) || size > MAX_BINARY_BYTES) return "skip";
     return "binary";

@@ -15,6 +15,10 @@ export function isLowSignalPath(path: string): boolean {
   );
 }
 
+export function isGeneratedFile(path: string): boolean {
+  return GENERATED_FILE.test(path);
+}
+
 export class HttpError extends Error {
   status: number;
   constructor(status: number, message: string) {
