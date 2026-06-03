@@ -58,8 +58,9 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 .page-landing .box{animation:riseIn .7s cubic-bezier(.2,.7,.2,1) .3s both}
 .page-landing .hero .sub{animation:riseIn .7s cubic-bezier(.2,.7,.2,1) .4s both}
 .page-landing .more{animation:riseIn .7s cubic-bezier(.2,.7,.2,1) .5s both}
+.page-landing .bottom{animation:riseIn .7s cubic-bezier(.2,.7,.2,1) .62s both}
 @media (prefers-reduced-motion:reduce){
-  .page-landing .logo,.page-landing .tag,.page-landing .box,.page-landing .hero .sub,.page-landing .more{animation:none}
+  .page-landing .logo,.page-landing .tag,.page-landing .box,.page-landing .hero .sub,.page-landing .more,.page-landing .bottom{animation:none}
 }
 .logobar{text-align:center}
 .logo{display:inline-block;font-size:46px;font-weight:800;letter-spacing:-1px;color:var(--text);text-decoration:none;transition:color .2s ease,transform .2s ease}
