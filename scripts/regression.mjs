@@ -38,10 +38,11 @@ async function scan(repo) {
   if (!fresh) return fetchReport(repo);
   const first = await fetchReport(repo);
   if (first.sha) {
+    const cacheKey = `${repo}@${first.sha}`.toLowerCase();
     execFileSync(
       "npx",
       ["wrangler", "kv", "key", "delete", "--remote",
-        "--namespace-id", scanCacheId(), `${repo}@${first.sha}`],
+        "--namespace-id", scanCacheId(), cacheKey],
       { cwd: root, stdio: "ignore" },
     );
   }
