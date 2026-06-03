@@ -272,12 +272,18 @@ export default {
     const apiMatch = path.match(/^api\/scan\/([^/]+)\/([^/]+)(?:\/.*)?$/);
     const asJson = !!apiMatch || !!sbomMatch;
     const m = sbomMatch ?? apiMatch ?? path.match(/^([^/]+)\/([^/]+)(?:\/.*)?$/);
-    if (!m) return htmlResponse(landingPage(), 404);
+    if (!m)
+      return htmlResponse(
+        landingPage("That doesn't look like a repository. Paste owner/repo or a github.com link."),
+        404,
+      );
 
     const owner = m[1];
     const repo = m[2].replace(/\.git$/, "");
-    if (!NAME.test(owner) || !NAME.test(repo))
-      return htmlResponse(landingPage(), 404);
+    if (!NAME.test(owner) || !NAME.test(repo)) {
+      const msg = "That repository name has characters frisk can't scan. Use a standard github.com/owner/repo link.";
+      return asJson ? jsonResponse({ error: msg }, 404) : htmlResponse(landingPage(msg), 404);
+    }
 
     if (!asJson && !url.searchParams.has("view")) {
       return htmlResponse(scanningPage(owner, repo));
