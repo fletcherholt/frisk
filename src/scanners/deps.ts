@@ -123,18 +123,33 @@ export async function queryOsv(collected: Dep[]): Promise<Finding[]> {
     if (!vulns || vulns.length === 0) return;
     const d = deps[i];
     const ids = vulns.map((v) => v.id);
-    const severity = isLowSignalPath(d.file)
-      ? "low"
-      : vulns.length >= 3
-        ? "high"
-        : "medium";
-    findings.push({
-      severity,
-      category: "dependency",
-      title: `Vulnerable dependency: ${d.name}@${d.version}`,
-      file: d.file,
-      detail: `${ids.length} known advisory(ies): ${ids.slice(0, 5).join(", ")}${ids.length > 5 ? "…" : ""} (${d.ecosystem}). See osv.dev/${ids[0]}`,
-    });
+    const malicious = ids.filter((id) => id.startsWith("MAL-"));
+
+    if (malicious.length > 0) {
+      findings.push({
+        severity: "critical",
+        category: "dependency",
+        title: `Known-malicious package: ${d.name}@${d.version}`,
+        file: d.file,
+        detail: `Flagged as malicious in the OSSF malicious-packages feed: ${malicious.slice(0, 5).join(", ")} (${d.ecosystem}). See osv.dev/${malicious[0]}`,
+      });
+    }
+
+    const advisories = ids.filter((id) => !id.startsWith("MAL-"));
+    if (advisories.length > 0) {
+      const severity = isLowSignalPath(d.file)
+        ? "low"
+        : advisories.length >= 3
+          ? "high"
+          : "medium";
+      findings.push({
+        severity,
+        category: "dependency",
+        title: `Vulnerable dependency: ${d.name}@${d.version}`,
+        file: d.file,
+        detail: `${advisories.length} known advisory(ies): ${advisories.slice(0, 5).join(", ")}${advisories.length > 5 ? "…" : ""} (${d.ecosystem}). See osv.dev/${advisories[0]}`,
+      });
+    }
   });
   return findings;
 }

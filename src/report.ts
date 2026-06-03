@@ -160,7 +160,7 @@ export function renderReport(r: Report): string {
   const catNames: Record<string, string> = {
     secret: "Leaked secrets",
     pattern: "Suspicious code",
-    dependency: "Vulnerable dependencies",
+    dependency: "Dependencies",
     binary: "Binaries (VirusTotal)",
   };
 
