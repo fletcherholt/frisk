@@ -6,6 +6,7 @@ export interface Dep {
   ecosystem: string;
   version: string;
   file: string;
+  dev?: boolean;
 }
 
 const MAX_QUERIES = 500;
@@ -36,9 +37,10 @@ function parsePackageJson(text: string, file: string): Dep[] {
     for (const field of ["dependencies", "devDependencies", "optionalDependencies"]) {
       const deps = j[field] as Record<string, string> | undefined;
       if (!deps) continue;
+      const dev = field !== "dependencies";
       for (const [name, spec] of Object.entries(deps)) {
         const real = resolveNpm(name, String(spec));
-        if (real) out.push({ name: real.name, ecosystem: "npm", version: real.version, file });
+        if (real) out.push({ name: real.name, ecosystem: "npm", version: real.version, file, dev });
       }
     }
   } catch {
@@ -72,17 +74,19 @@ function parseGoMod(text: string, file: string): Dep[] {
 function parseCargo(text: string, file: string): Dep[] {
   const out: Dep[] = [];
   let inDeps = false;
+  let dev = false;
   for (const raw of text.split("\n")) {
     const line = raw.trim();
     if (line.startsWith("[")) {
       inDeps = /^\[(?:dev-|build-)?dependencies\]/.test(line);
+      dev = /^\[(?:dev-|build-)dependencies\]/.test(line);
       continue;
     }
     if (!inDeps || !line || line.startsWith("#")) continue;
     const m = line.match(/^([A-Za-z0-9._-]+)\s*=\s*(?:"([^"]+)"|\{[^}]*version\s*=\s*"([^"]+)")/);
     if (m) {
       const v = pinVersion(m[2] ?? m[3] ?? "");
-      if (v) out.push({ name: m[1], ecosystem: "crates.io", version: v, file });
+      if (v) out.push({ name: m[1], ecosystem: "crates.io", version: v, file, dev });
     }
   }
   return out;
@@ -152,7 +156,7 @@ export async function queryOsv(collected: Dep[]): Promise<Finding[]> {
 
     const advisories = ids.filter((id) => !id.startsWith("MAL-"));
     if (advisories.length > 0) {
-      const severity = isLowSignalPath(d.file)
+      const severity = isLowSignalPath(d.file) || d.dev
         ? "low"
         : advisories.length >= 3
           ? "high"
@@ -160,9 +164,9 @@ export async function queryOsv(collected: Dep[]): Promise<Finding[]> {
       findings.push({
         severity,
         category: "dependency",
-        title: `Vulnerable dependency: ${d.name}@${d.version}`,
+        title: `Vulnerable ${d.dev ? "dev " : ""}dependency: ${d.name}@${d.version}`,
         file: d.file,
-        detail: `${advisories.length} known advisory(ies): ${advisories.slice(0, 5).join(", ")}${advisories.length > 5 ? "…" : ""} (${d.ecosystem}). See osv.dev/${advisories[0]}`,
+        detail: `${advisories.length} known advisory(ies): ${advisories.slice(0, 5).join(", ")}${advisories.length > 5 ? "…" : ""} (${d.ecosystem})${d.dev ? ", a development dependency" : ""}. See osv.dev/${advisories[0]}`,
       });
     }
   });

@@ -16,6 +16,9 @@ interface Rule {
 
 const WORDY = /^[a-z]+(?:[._-][a-z]+)+$/;
 
+const PLACEHOLDER =
+  /example|abcdef|xxx+|0000+|1234567|your[_-]?(?:api|key|token|secret|password)|(?:my|some|the|test|fake|dummy|sample|placeholder|changeme|redacted|insert|replace)[_-]?(?:key|token|secret|password|here)|<[^>]+>|\.\.\.|^(.)\1{6,}$/i;
+
 const RULES: Rule[] = [
   { id: "aws-akid", title: "AWS access key ID", severity: "high", re: /\bAKIA[0-9A-Z]{16}\b/g },
   { id: "aws-secret", title: "AWS secret access key", severity: "critical", re: /\baws_secret_access_key\s*[:=]\s*['"]?([A-Za-z0-9/+]{40})['"]?/gi, minEntropy: 4.0, group: 1 },
@@ -54,9 +57,11 @@ export function validatableSecrets(path: string, text: string): SecretCandidate[
     let n = 0;
     while ((m = rule.re.exec(text)) !== null) {
       if (m.index === rule.re.lastIndex) rule.re.lastIndex++;
+      const value = m[rule.group ?? 0] ?? m[0];
+      if (PLACEHOLDER.test(value)) continue;
       out.push({
         type: rule.validate,
-        value: m[rule.group ?? 0] ?? m[0],
+        value,
         file: path,
         line: lineOf(text, m.index),
       });
@@ -79,6 +84,7 @@ export function scanSecretsText(path: string, text: string): Finding[] {
       const probe = m[rule.group ?? 0] ?? m[0];
       if (rule.minEntropy && shannon(probe) < rule.minEntropy) continue;
       if (rule.reject && rule.reject.test(probe)) continue;
+      if (rule.id !== "private-key" && PLACEHOLDER.test(probe)) continue;
       const line = lineOf(text, m.index);
       const key = `${rule.id}:${line}`;
       if (seen.has(key)) continue;

@@ -5,12 +5,18 @@ import { scoreFindings } from "../src/score";
 
 describe("secrets scanner", () => {
   it("flags an AWS access key id", () => {
-    const f = scanSecretsText("config.js", 'const k = "AKIAIOSFODNN7EXAMPLE";');
+    const f = scanSecretsText("config.js", 'const k = "AKIAJ7XYZ2LMNOPQ4RST";');
     expect(f.some((x) => x.title.includes("AWS access key"))).toBe(true);
   });
 
+  it("ignores the canonical AWS example key and placeholders", () => {
+    expect(scanSecretsText("config.js", 'k = "AKIAIOSFODNN7EXAMPLE"').length).toBe(0);
+    expect(scanSecretsText("a.env", 'API_KEY="your-api-key-goes-here1"').length).toBe(0);
+    expect(scanSecretsText("c.js", 'token = "xxxxxxxxxxxxxxxxxxxx"').length).toBe(0);
+  });
+
   it("flags a GitHub PAT", () => {
-    const f = scanSecretsText("a.env", "GH=ghp_1234567890abcdefghijklmnopqrstuvwx12");
+    const f = scanSecretsText("a.env", "GH=ghp_R7kZ9pQ2wX5vL8mN3jH6tY4bC1dF0aGsErUu");
     expect(f.some((x) => x.title.includes("GitHub personal"))).toBe(true);
   });
 
@@ -41,8 +47,8 @@ describe("secrets scanner", () => {
   });
 
   it("dampens secrets in test/example paths", () => {
-    const real = scanSecretsText("src/k.js", 'k="AKIAIOSFODNN7EXAMPLE"');
-    const test = scanSecretsText("tests/k.js", 'k="AKIAIOSFODNN7EXAMPLE"');
+    const real = scanSecretsText("src/k.js", 'k="AKIAJ7XYZ2LMNOPQ4RST"');
+    const test = scanSecretsText("tests/k.js", 'k="AKIAJ7XYZ2LMNOPQ4RST"');
     expect(real[0].severity).toBe("high");
     expect(test[0].severity).toBe("low");
   });
@@ -165,5 +171,13 @@ describe("generic credential rejects wordy values", () => {
   it("does not flag theme/scope tokens as credentials", () => {
     const f = scanSecretsText("theme.ts", "token: 'keyword.operator.class',");
     expect(f.some((x) => x.title === "Hardcoded credential")).toBe(false);
+  });
+});
+
+describe("install hooks and dev-dep calibration", () => {
+  it("treats an npm install hook as info, never a danger driver", () => {
+    const f = scanPatternsText("package.json", '{"scripts":{"postinstall":"node build.js"}}');
+    const hook = f.find((x) => x.title.includes("install lifecycle"));
+    expect(hook && hook.severity).toBe("info");
   });
 });

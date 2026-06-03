@@ -83,12 +83,12 @@ export function scanPatternsText(path: string, text: string): Finding[] {
     let m: RegExpExecArray | null;
     while ((m = INSTALL_HOOKS.exec(text)) !== null) {
       findings.push({
-        severity: soft ? "low" : "medium",
+        severity: "info",
         category: "pattern",
         title: "npm install lifecycle hook",
         file: path,
         line: lineOf(text, m.index),
-        detail: "preinstall and postinstall scripts run automatically on `npm install`, a common supply chain vector. Review the command.",
+        detail: "This package.json runs a preinstall or postinstall script. That is normal for build steps, and only a concern if the command itself is suspicious (those are flagged separately).",
         snippet: snippetAt(text, m.index),
       });
     }
