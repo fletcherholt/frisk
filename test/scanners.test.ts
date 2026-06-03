@@ -90,7 +90,7 @@ describe("patterns comment dampening", () => {
   it("downgrades a sensitive path that sits in a comment", () => {
     const f = scanPatternsText("cli/pack.rs", "/// guards against a symlink to ~/.ssh/id_rsa here\n");
     expect(f.length).toBe(1);
-    expect(f[0].severity).toBe("low");
+    expect(f[0].severity).toBe("info");
     expect(f[0].title).toContain("comment");
   });
   it("still flags a real eval in code", () => {

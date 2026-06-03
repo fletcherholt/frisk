@@ -1,13 +1,25 @@
 {
+  "_comment": "Known-clean popular repos plus known-bad controls. A clean case fails the gate if it produces any heuristic (pattern or secret) high/critical finding; dependency and binary findings are ignored since those are externally validated. Spread across languages and chosen to exercise the false-positive-prone scanners (vendored eval, ssh-read, IaC, workflow injection, private keys). Kept under 20 so a --fresh run fits one rate-limit window.",
   "heuristicCategories": ["pattern", "secret"],
   "cases": [
-    { "repo": "expressjs/express", "expect": "clean" },
-    { "repo": "pallets/click", "expect": "clean" },
-    { "repo": "prettier/prettier", "expect": "clean" },
-    { "repo": "gin-gonic/gin", "expect": "clean" },
-    { "repo": "sindresorhus/got", "expect": "clean" },
-    { "repo": "fastapi/typer", "expect": "clean" },
-    { "repo": "denoland/deno", "expect": "clean" },
-    { "repo": "ossf/malicious-packages", "expect": "critical" }
+    { "repo": "expressjs/express", "expect": "clean", "lang": "js" },
+    { "repo": "lodash/lodash", "expect": "clean", "lang": "js", "guards": "vendored eval" },
+    { "repo": "vuejs/core", "expect": "clean", "lang": "ts" },
+    { "repo": "babel/babel", "expect": "clean", "lang": "js", "guards": "monorepo" },
+    { "repo": "psf/requests", "expect": "clean", "lang": "python" },
+    { "repo": "pallets/flask", "expect": "clean", "lang": "python" },
+    { "repo": "pydantic/pydantic", "expect": "clean", "lang": "python" },
+    { "repo": "fastapi/typer", "expect": "clean", "lang": "python", "guards": "workflow injection (head_ref, env)" },
+    { "repo": "gin-gonic/gin", "expect": "clean", "lang": "go" },
+    { "repo": "spf13/cobra", "expect": "clean", "lang": "go" },
+    { "repo": "hashicorp/terraform", "expect": "clean", "lang": "go", "guards": "IaC" },
+    { "repo": "helm/helm", "expect": "clean", "lang": "go", "guards": "IaC, kubernetes yaml" },
+    { "repo": "BurntSushi/ripgrep", "expect": "clean", "lang": "rust" },
+    { "repo": "denoland/deno", "expect": "clean", "lang": "rust", "guards": "private keys in docs/d.ts, ssh-read, workflow injection" },
+    { "repo": "sinatra/sinatra", "expect": "clean", "lang": "ruby" },
+    { "repo": "laravel/framework", "expect": "clean", "lang": "php" },
+    { "repo": "square/okhttp", "expect": "clean", "lang": "java" },
+    { "repo": "curl/curl", "expect": "clean", "lang": "c", "guards": "ssh-read in an SSH library" },
+    { "repo": "ossf/malicious-packages", "expect": "critical", "lang": "control" }
   ]
 }
