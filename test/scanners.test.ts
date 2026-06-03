@@ -181,3 +181,12 @@ describe("install hooks and dev-dep calibration", () => {
     expect(hook && hook.severity).toBe("info");
   });
 });
+
+describe("lockfiles and generated files are low signal", () => {
+  it("dampens lockfiles, minified bundles, source maps and generated code", () => {
+    ["package-lock.json", "yarn.lock", "pnpm-lock.yaml", "Cargo.lock", "go.sum",
+     "dist/app.min.js", "dist/app.js.map", "api/service.pb.go", "x_pb2.py"]
+      .forEach((p) => expect(isLowSignalPath(p)).toBe(true));
+    ["src/app.js", "src/lock.ts", "go.mod"].forEach((p) => expect(isLowSignalPath(p)).toBe(false));
+  });
+});
