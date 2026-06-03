@@ -32,11 +32,11 @@ Or paste a repo at [friskit.dev](https://friskit.dev). You get a report in about
 
 ## Reading the results
 
-frisk is a first pass, not a verdict. Findings are heuristic, so read them, do not take them at face value.
+frisk is a first pass. Findings are heuristic, so read them and check before you act on them.
 
-One thing that surprises people: **security tools come back critical when you scan them, including frisk itself.** A scanner's own source and tests are full of the exact things it hunts for, obfuscated eval, fake API keys, malware keywords like MetaMask or wallet.dat, because those are the detection rules and the test fixtures. So pointing frisk at frisk reports critical. That does not mean frisk is malware, it means the rules are matching the rules. The same is true of any antivirus, linter or scanner.
+One thing that surprises people: **security tools come back critical when you scan them, including frisk itself.** A scanner's own source and tests are full of the exact things it hunts for, obfuscated eval, fake API keys, malware keywords like MetaMask or wallet.dat, because those are the detection rules and the test fixtures. So pointing frisk at frisk reports critical. The rules are matching the rules, and frisk is fine. The same happens with any antivirus, linter or scanner.
 
-A finding is a flag, not a conviction. Open the file, look at the line, and decide for yourself. Use frisk to find what is worth a closer look, then actually look.
+Every finding is a flag to investigate. Open the file, look at the line, and decide for yourself. Use frisk to find what is worth a closer look, then actually look.
 
 ## Run your own
 
