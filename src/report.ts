@@ -132,7 +132,7 @@ function shell(inner: string, landing = false, title = "friskit"): string {
 <body><div class="page${landing ? " page-landing" : ""}">
 <main class="wrap">${inner}</main>
 <footer class="bottom">
-<div class="foot">Code is never stored. Fetched and scanned in memory at the edge. Results are heuristic. · <a href="/">scan another repo</a></div>
+<div class="foot">Code is never stored. Detected secrets are checked against their provider to confirm whether they are live. Results are heuristic. · <a href="/">scan another repo</a></div>
 <div class="powered">binary checks powered by <a href="https://www.virustotal.com">VirusTotal</a> · dependency data from <a href="https://osv.dev">OSV</a></div>
 <div class="copy">© 2026 Fletcher Holt · <a href="https://github.com/fletcherholt">github.com/fletcherholt</a> · <a class="kofi" href="https://ko-fi.com/fletcherholt">support on Ko-fi</a></div>
 </footer>

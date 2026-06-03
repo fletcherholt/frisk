@@ -8,7 +8,12 @@ import {
 } from "./fetchRepo";
 import { isLowSignalPath } from "./util";
 import { streamTar, type FileKind, type TarStats } from "./tar";
-import { scanSecretsText } from "./scanners/secrets";
+import {
+  scanSecretsText,
+  validatableSecrets,
+  type SecretCandidate,
+} from "./scanners/secrets";
+import { validateSecrets } from "./scanners/secretValidate";
 import { scanPatternsText } from "./scanners/patterns";
 import { scanIacText } from "./scanners/iac";
 import { parseManifest, isManifest, queryOsv, type Dep } from "./scanners/deps";
@@ -81,6 +86,7 @@ export async function runScan(
   const binTargets: BinTarget[] = [];
   let binCount = 0;
   let license: string | null = null;
+  const secretCandidates: SecretCandidate[] = [];
   const notes: string[] = [];
 
   for await (const f of streamTar(
@@ -96,6 +102,7 @@ export async function runScan(
     } else if (!looksBinary(f.bytes)) {
       const text = DECODER.decode(f.bytes);
       findings.push(...scanSecretsText(f.name, text));
+      secretCandidates.push(...validatableSecrets(f.name, text));
       findings.push(...scanPatternsText(f.name, text));
       findings.push(...scanIacText(f.name, text));
       if (isManifest(f.name)) deps.push(...parseManifest(f.name, text));
@@ -113,13 +120,26 @@ export async function runScan(
     })
     .map((d) => ({ name: d.name, version: d.version, ecosystem: d.ecosystem }));
 
-  const [osv, typo, bins, health] = await Promise.all([
+  const [osv, typo, bins, health, secretStatus] = await Promise.all([
     queryOsv(deps),
     scanTyposquat(deps),
     lookupBinaries(binTargets, binCount, env, notes),
     scanScorecard(owner, repo),
+    validateSecrets(secretCandidates),
   ]);
   findings.push(...osv, ...typo, ...bins, ...health);
+
+  for (const f of findings) {
+    if (f.category !== "secret" || f.line === undefined) continue;
+    const status = secretStatus.get(`${f.file}:${f.line}`);
+    if (status === "live") {
+      f.severity = "critical";
+      f.title = `${f.title} (verified live)`;
+    } else if (status === "dead") {
+      f.severity = "low";
+      f.title = `${f.title} (appears revoked)`;
+    }
+  }
 
   if (stats.truncated)
     notes.push("Repository is very large, so only part of it was scanned.");

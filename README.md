@@ -21,7 +21,7 @@ Swap the domain on any GitHub repo:
 github.com/owner/repo   →   friskit.dev/owner/repo
 ```
 
-Or paste a repo at [friskit.dev](https://friskit.dev). You get a report in about a second. Your code is never stored.
+Or paste a repo at [friskit.dev](https://friskit.dev). You get a report in about a second. Your code is never stored. Detected secrets are checked against their provider to confirm whether they are live, and committed binaries are hashed for VirusTotal.
 
 ## What it checks
 
