@@ -210,10 +210,12 @@ export function landingPage(): string {
 <details class="explain">
   <summary>What does it do?</summary>
   <div class="checks">
-    <div class="row"><span class="dot" style="background:#f38ba8"></span><div><b>Leaked secrets</b><br><span>API keys, tokens, private keys committed to the repo.</span></div></div>
+    <div class="row"><span class="dot" style="background:#f38ba8"></span><div><b>Leaked secrets</b><br><span>API keys, tokens and private keys, checked against their provider to see if they are live.</span></div></div>
     <div class="row"><span class="dot" style="background:#fab387"></span><div><b>Malicious code</b><br><span>Obfuscated eval, shellcode blobs, curl-pipe-sh, credential and wallet stealers.</span></div></div>
-    <div class="row"><span class="dot" style="background:#89b4fa"></span><div><b>Vulnerable deps</b><br><span>npm, PyPI, Go and Cargo checked against the OSV advisory database.</span></div></div>
+    <div class="row"><span class="dot" style="background:#a6e3a1"></span><div><b>Supply chain</b><br><span>Confirmed-malicious and typosquatted packages, plus vulnerable deps via OSV (npm, PyPI, Go, Cargo).</span></div></div>
     <div class="row"><span class="dot" style="background:#cba6f7"></span><div><b>Bad binaries</b><br><span>Committed executables hashed and looked up on VirusTotal.</span></div></div>
+    <div class="row"><span class="dot" style="background:#89b4fa"></span><div><b>Infrastructure</b><br><span>Dockerfile, compose, Terraform, Kubernetes and GitHub Actions misconfigurations.</span></div></div>
+    <div class="row"><span class="dot" style="background:#94e2d5"></span><div><b>Repo health</b><br><span>OpenSSF Scorecard signals, plus a CycloneDX SBOM you can download.</span></div></div>
   </div>
 </details>
 <script>

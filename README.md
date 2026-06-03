@@ -25,10 +25,12 @@ Or paste a repo at [friskit.dev](https://friskit.dev). You get a report in about
 
 ## What it checks
 
-- **Secrets** committed to the repo: API keys, tokens, private keys.
+- **Secrets** committed to the repo: API keys, tokens, private keys, checked against their provider to see if they are still live.
 - **Malicious code**: obfuscated eval, shellcode blobs, curl piped to shell, credential and wallet stealers.
-- **Vulnerable dependencies** via [OSV](https://osv.dev): npm, PyPI, Go, Cargo.
+- **Supply chain**: confirmed-malicious packages (OSSF malicious-packages), typosquats, and vulnerable dependencies via [OSV](https://osv.dev) across npm, PyPI, Go and Cargo.
 - **Bad binaries**: executables hashed and checked on [VirusTotal](https://www.virustotal.com).
+- **Infrastructure**: Dockerfile, compose, Terraform, Kubernetes and GitHub Actions misconfigurations.
+- **Repo health**: [OpenSSF Scorecard](https://securityscorecards.dev) signals, with a CycloneDX SBOM at `/api/sbom/owner/repo`.
 
 ## Reading the results
 
