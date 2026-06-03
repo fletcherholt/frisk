@@ -36,7 +36,7 @@ export async function checkGlobalCapacity(env: Env): Promise<boolean> {
   const count = Number((await env.RATELIMIT.get(key)) ?? "0");
   if (count >= GLOBAL_CAP) return false;
   await env.RATELIMIT.put(key, String(count + 1), {
-    expirationTtl: GLOBAL_WINDOW * 2,
+    expirationTtl: 60, // Cloudflare KV minimum; the bucket key rotates each window anyway
   });
   return true;
 }
