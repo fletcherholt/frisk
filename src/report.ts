@@ -162,10 +162,11 @@ export function renderReport(r: Report): string {
     pattern: "Suspicious code",
     dependency: "Dependencies",
     binary: "Binaries (VirusTotal)",
+    health: "Repo health",
   };
 
   let body = "";
-  for (const cat of ["secret", "pattern", "dependency", "binary"]) {
+  for (const cat of ["secret", "pattern", "dependency", "binary", "health"]) {
     const items = sorted.filter((f) => f.category === cat);
     if (items.length === 0) continue;
     body += `<div class="cat">${catNames[cat]} (${items.length})</div>`;
