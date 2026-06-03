@@ -38,6 +38,12 @@ export async function resolveSha(
   repo: string,
   env: Env,
 ): Promise<string> {
+  // Cache the SHA briefly so repeated requests for the same repo (notably the
+  // interstitial's /api/scan followed by ?view=1) make one GitHub call, not two.
+  const cacheKey = `sha:${owner}/${repo}`.toLowerCase();
+  const cached = await env.SCAN_CACHE.get(cacheKey);
+  if (cached) return cached;
+
   const r = await fetch(
     `https://api.github.com/repos/${owner}/${repo}/commits?per_page=1`,
     { headers: ghHeaders(env) },
@@ -50,7 +56,10 @@ export async function resolveSha(
   const commits = (await r.json()) as Array<{ sha: string }>;
   if (!Array.isArray(commits) || commits.length === 0)
     throw new HttpError(404, "Repository has no commits.");
-  return commits[0].sha;
+
+  const sha = commits[0].sha;
+  await env.SCAN_CACHE.put(cacheKey, sha, { expirationTtl: 300 });
+  return sha;
 }
 
 async function gunzip(buf: ArrayBuffer): Promise<Uint8Array> {
@@ -84,6 +93,11 @@ export async function fetchRepo(
     { headers: { "User-Agent": "frisk" } },
   );
   if (!r.ok) throw new HttpError(502, `Tarball download failed (${r.status}).`);
+
+  // Guard against monster repos that would exhaust Worker memory once gunzipped.
+  const compressed = Number(r.headers.get("content-length") ?? 0);
+  if (compressed > 80 * 1024 * 1024)
+    throw new HttpError(413, "Repository is too large to scan.");
 
   const tar = await gunzip(await r.arrayBuffer());
   const entries = parseTar(tar);

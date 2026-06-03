@@ -250,8 +250,9 @@ export function scanningPage(owner: string, repo: string): string {
   setInterval(function(){document.title='scanning'+seq[i];i=(i+1)%seq.length;},350);
   var delay=100+Math.random()*3400;            // hold 0.1s to 3.5s
   var t0=Date.now();
-  function go(){var w=Math.max(0,delay-(Date.now()-t0));setTimeout(function(){location.replace(p+'?view=1');},w);}
-  fetch('/api/scan'+p).then(go,go);
+  function done(){location.replace(p+'?view=1');}
+  function go(){setTimeout(done,Math.max(0,delay-(Date.now()-t0)));}
+  fetch('/api/scan'+p).then(function(r){r.ok?go():done();},done);
 })();
 </script>`;
   return shell(inner, true, "scanning");

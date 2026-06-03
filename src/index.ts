@@ -10,17 +10,17 @@ import { checkRateLimit } from "./ratelimit";
 import { renderReport, landingPage, errorPage, scanningPage } from "./report";
 import { htmlResponse, jsonResponse, HttpError } from "./util";
 
-export async function scanRepo(
+// GitHub owner and repo names are limited to this set. Validating against it
+// rejects junk paths and blocks any HTML/script injection through the URL.
+const NAME = /^[A-Za-z0-9._-]+$/;
+
+export async function runScan(
   owner: string,
   repo: string,
+  sha: string,
   env: Env,
   ctx: ExecutionContext,
 ): Promise<Report> {
-  const sha = await resolveSha(owner, repo, env);
-
-  const cached = await getCached(env, owner, repo, sha);
-  if (cached) return { ...cached, cached: true };
-
   const { files, truncated } = await fetchRepo(owner, repo, sha, env);
   const notes: string[] = [];
   if (truncated)
@@ -63,13 +63,16 @@ export default {
       return htmlResponse(landingPage());
     if (path === "favicon.ico") return new Response(null, { status: 204 });
 
-    const apiMatch = path.match(/^api\/scan\/([^/]+)\/([^/]+)$/);
+    // Match owner/repo, tolerating deeper GitHub URL paths (/tree/main, etc.).
+    const apiMatch = path.match(/^api\/scan\/([^/]+)\/([^/]+)(?:\/.*)?$/);
     const wantJson = !!apiMatch;
-    const m = apiMatch ?? path.match(/^([^/]+)\/([^/]+)$/);
+    const m = apiMatch ?? path.match(/^([^/]+)\/([^/]+)(?:\/.*)?$/);
     if (!m) return htmlResponse(landingPage(), 404);
 
     const owner = m[1];
     const repo = m[2].replace(/\.git$/, "");
+    if (!NAME.test(owner) || !NAME.test(repo))
+      return htmlResponse(landingPage(), 404);
 
     // Browser hitting the repo page (no ?view) gets the scanning interstitial.
     // Its JS runs the scan via /api/scan, then redirects here with ?view=1.
@@ -77,17 +80,23 @@ export default {
       return htmlResponse(scanningPage(owner, repo));
     }
 
-    const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
-    const rl = await checkRateLimit(ip, env);
-    if (!rl.ok) {
-      const msg = "Rate limit exceeded. Try again in a few minutes.";
-      return wantJson
-        ? jsonResponse({ error: msg }, 429)
-        : htmlResponse(errorPage(owner, repo, msg), 429);
-    }
-
     try {
-      const report = await scanRepo(owner, repo, env, ctx);
+      const sha = await resolveSha(owner, repo, env);
+      let report = await getCached(env, owner, repo, sha);
+      if (report) {
+        report = { ...report, cached: true };
+      } else {
+        // Only a real scan (cache miss) costs a rate-limit token.
+        const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+        const rl = await checkRateLimit(ip, env);
+        if (!rl.ok) {
+          const msg = "Rate limit exceeded. Try again in a few minutes.";
+          return wantJson
+            ? jsonResponse({ error: msg }, 429)
+            : htmlResponse(errorPage(owner, repo, msg), 429);
+        }
+        report = await runScan(owner, repo, sha, env, ctx);
+      }
       return wantJson
         ? jsonResponse(report)
         : htmlResponse(renderReport(report));
