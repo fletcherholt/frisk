@@ -14,6 +14,8 @@ import { scanIacText } from "./scanners/iac";
 import { parseManifest, isManifest, queryOsv, type Dep } from "./scanners/deps";
 import { scanTyposquat } from "./scanners/typosquat";
 import { scanScorecard } from "./scanners/scorecard";
+import { toCycloneDX, parseRepoLicense } from "./scanners/sbom";
+import type { Component } from "./types";
 import {
   SCAN_BINARY_EXT,
   MAX_BINARIES,
@@ -78,6 +80,7 @@ export async function runScan(
   const deps: Dep[] = [];
   const binTargets: BinTarget[] = [];
   let binCount = 0;
+  let license: string | null = null;
   const notes: string[] = [];
 
   for await (const f of streamTar(
@@ -96,8 +99,19 @@ export async function runScan(
       findings.push(...scanPatternsText(f.name, text));
       findings.push(...scanIacText(f.name, text));
       if (isManifest(f.name)) deps.push(...parseManifest(f.name, text));
+      if (!license) license = parseRepoLicense(f.name, text);
     }
   }
+
+  const seenComponent = new Set<string>();
+  const components: Component[] = deps
+    .filter((d) => {
+      const k = `${d.ecosystem}:${d.name}@${d.version}`;
+      if (seenComponent.has(k)) return false;
+      seenComponent.add(k);
+      return true;
+    })
+    .map((d) => ({ name: d.name, version: d.version, ecosystem: d.ecosystem }));
 
   const [osv, typo, bins, health] = await Promise.all([
     queryOsv(deps),
@@ -133,10 +147,33 @@ export async function runScan(
     score,
     cached: false,
     notes,
+    components,
+    license,
   };
 
   ctx.waitUntil(putCached(env, report));
   return report;
+}
+
+async function obtainReport(
+  owner: string,
+  repo: string,
+  env: Env,
+  ctx: ExecutionContext,
+  ip: string,
+): Promise<Report | { rateLimited: true }> {
+  const sha = await resolveSha(owner, repo, env);
+  const cached = await getCached(env, owner, repo, sha);
+  if (cached)
+    return {
+      ...cached,
+      cached: true,
+      components: cached.components ?? [],
+      license: cached.license ?? null,
+    };
+  const rl = await checkRateLimit(ip, env);
+  if (!rl.ok) return { rateLimited: true };
+  return runScan(owner, repo, sha, env, ctx);
 }
 
 export default {
@@ -152,9 +189,10 @@ export default {
       return htmlResponse(landingPage());
     if (path === "favicon.ico") return new Response(null, { status: 204 });
 
+    const sbomMatch = path.match(/^api\/sbom\/([^/]+)\/([^/]+)(?:\/.*)?$/);
     const apiMatch = path.match(/^api\/scan\/([^/]+)\/([^/]+)(?:\/.*)?$/);
-    const wantJson = !!apiMatch;
-    const m = apiMatch ?? path.match(/^([^/]+)\/([^/]+)(?:\/.*)?$/);
+    const asJson = !!apiMatch || !!sbomMatch;
+    const m = sbomMatch ?? apiMatch ?? path.match(/^([^/]+)\/([^/]+)(?:\/.*)?$/);
     if (!m) return htmlResponse(landingPage(), 404);
 
     const owner = m[1];
@@ -162,37 +200,40 @@ export default {
     if (!NAME.test(owner) || !NAME.test(repo))
       return htmlResponse(landingPage(), 404);
 
-    if (!wantJson && !url.searchParams.has("view")) {
+    if (!asJson && !url.searchParams.has("view")) {
       return htmlResponse(scanningPage(owner, repo));
     }
 
+    const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
     try {
-      const sha = await resolveSha(owner, repo, env);
-      let report = await getCached(env, owner, repo, sha);
-      if (report) {
-        report = { ...report, cached: true };
-      } else {
-        const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
-        const rl = await checkRateLimit(ip, env);
-        if (!rl.ok) {
-          const msg = "Rate limit exceeded. Try again in a few minutes.";
-          return wantJson
-            ? jsonResponse({ error: msg }, 429)
-            : htmlResponse(errorPage(owner, repo, msg), 429);
-        }
-        report = await runScan(owner, repo, sha, env, ctx);
+      const result = await obtainReport(owner, repo, env, ctx, ip);
+      if ("rateLimited" in result) {
+        const msg = "Rate limit exceeded. Try again in a few minutes.";
+        return asJson
+          ? jsonResponse({ error: msg }, 429)
+          : htmlResponse(errorPage(owner, repo, msg), 429);
       }
-      return wantJson
-        ? jsonResponse(report)
-        : htmlResponse(renderReport(report));
+      if (sbomMatch) {
+        return new Response(JSON.stringify(toCycloneDX(result), null, 2), {
+          status: 200,
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "content-disposition": `attachment; filename="${owner}-${repo}-sbom.cdx.json"`,
+            "cache-control": "no-store",
+          },
+        });
+      }
+      return asJson
+        ? jsonResponse(result)
+        : htmlResponse(renderReport(result));
     } catch (e) {
       if (e instanceof HttpError && e.status === 429)
-        return busyResponse(wantJson, owner, repo);
+        return busyResponse(asJson, owner, repo);
       const status = e instanceof HttpError ? e.status : 500;
       const msg = e instanceof HttpError
         ? e.message
         : "Something went wrong while scanning. Please try again.";
-      return wantJson
+      return asJson
         ? jsonResponse({ error: msg }, status)
         : htmlResponse(errorPage(owner, repo, msg), status);
     }

@@ -26,6 +26,12 @@ export interface Score {
   counts: Record<Severity, number>;
 }
 
+export interface Component {
+  name: string;
+  version: string;
+  ecosystem: string;
+}
+
 export interface Report {
   owner: string;
   repo: string;
@@ -37,4 +43,6 @@ export interface Report {
   score: Score;
   cached: boolean;
   notes: string[];
+  components: Component[];
+  license: string | null;
 }

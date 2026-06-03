@@ -186,7 +186,7 @@ export function renderReport(r: Report): string {
 <a class="back" href="/">← back</a>
 <div class="logobar"><a class="logo" href="https://github.com/fletcherholt/frisk">frisk</a><span class="logo-hint">check out the repo ↗</span></div>
 <h1>${escapeHtml(r.owner)}/${escapeHtml(r.repo)}</h1>
-<div class="sub">commit ${r.sha.slice(0, 10)} · ${r.fileCount} files scanned${r.truncated ? " (truncated)" : ""} · <a href="https://github.com/${escapeHtml(r.owner)}/${escapeHtml(r.repo)}">GitHub</a>${r.cached ? " · cached" : ""}</div>
+<div class="sub">commit ${r.sha.slice(0, 10)} · ${r.fileCount} files scanned${r.truncated ? " (truncated)" : ""}${r.license ? ` · ${escapeHtml(r.license)}` : ""} · <a href="https://github.com/${escapeHtml(r.owner)}/${escapeHtml(r.repo)}">GitHub</a>${r.components.length ? ` · <a href="/api/sbom/${escapeHtml(r.owner)}/${escapeHtml(r.repo)}">SBOM</a>` : ""}${r.cached ? " · cached" : ""}</div>
 <div class="badge" style="background:${LEVEL_COLOR[r.score.level]}">${LEVEL_LABEL[r.score.level]}</div>
 <div class="counts">${counts || '<span class="pill" style="background:#a6e3a1">no findings</span>'}</div>
 ${notes}
