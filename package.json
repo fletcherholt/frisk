@@ -8,7 +8,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "regression": "node scripts/regression.mjs"
   },
   "devDependencies": {
     "nanotar": "^0.3.0",

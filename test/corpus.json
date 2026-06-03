@@ -1,0 +1,13 @@
+{
+  "heuristicCategories": ["pattern", "secret"],
+  "cases": [
+    { "repo": "expressjs/express", "expect": "clean" },
+    { "repo": "pallets/click", "expect": "clean" },
+    { "repo": "prettier/prettier", "expect": "clean" },
+    { "repo": "gin-gonic/gin", "expect": "clean" },
+    { "repo": "sindresorhus/got", "expect": "clean" },
+    { "repo": "fastapi/typer", "expect": "clean" },
+    { "repo": "denoland/deno", "expect": "clean" },
+    { "repo": "ossf/malicious-packages", "expect": "critical" }
+  ]
+}

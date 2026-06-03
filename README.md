@@ -60,6 +60,8 @@ npm run deploy
 
 `npm run dev` runs it locally, `npm test` runs the tests.
 
+`npm run regression` scans a corpus of known-clean popular repos and known-bad controls (`test/corpus.json`) against the live deploy and fails if a clean repo ever produces a heuristic high or critical finding, or a control stops firing. Run it after any rule change. Add `--fresh` to bust the cache and re-scan from scratch.
+
 </details>
 
 ## Licence
