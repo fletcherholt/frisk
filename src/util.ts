@@ -1,3 +1,13 @@
+// Paths where a match is almost always an example, fixture, test or doc rather
+// than live code: used to dampen or skip findings across the scanners.
+const LOW_SIGNAL_DIR =
+  /(^|\/)(tests?|testdata|test[-_]data|specs?|__tests__|examples?|fixtures?|mocks?|samples?|docs?|docs_src|documentation|wiki|benches?|benchmarks?|e2e)\//i;
+const DOC_FILE = /\.(md|mdx|markdown|rst|adoc|txt)$|(^|\/)readme[^/]*$/i;
+
+export function isLowSignalPath(path: string): boolean {
+  return LOW_SIGNAL_DIR.test(path) || DOC_FILE.test(path);
+}
+
 export class HttpError extends Error {
   status: number;
   constructor(status: number, message: string) {

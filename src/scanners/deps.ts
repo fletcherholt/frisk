@@ -1,5 +1,6 @@
 import type { Finding } from "../types";
 import type { RepoFile } from "../fetchRepo";
+import { isLowSignalPath } from "../util";
 
 interface Dep {
   name: string;
@@ -124,8 +125,13 @@ export async function scanDeps(files: RepoFile[]): Promise<Finding[]> {
     if (!vulns || vulns.length === 0) return;
     const d = deps[i];
     const ids = vulns.map((v) => v.id);
+    const severity = isLowSignalPath(d.file)
+      ? "low"
+      : vulns.length >= 3
+        ? "high"
+        : "medium";
     findings.push({
-      severity: vulns.length >= 3 ? "high" : "medium",
+      severity,
       category: "dependency",
       title: `Vulnerable dependency: ${d.name}@${d.version}`,
       file: d.file,

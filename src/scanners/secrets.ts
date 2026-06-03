@@ -1,6 +1,6 @@
 import type { Finding, Severity } from "../types";
 import type { RepoFile } from "../fetchRepo";
-import { lineOf, snippetAt, shannon } from "../util";
+import { lineOf, snippetAt, shannon, isLowSignalPath } from "../util";
 
 interface Rule {
   id: string;
@@ -29,15 +29,12 @@ const RULES: Rule[] = [
   { id: "generic-secret", title: "Hardcoded credential", severity: "medium", re: /(?:api[_-]?key|secret|token|passwd|password|client[_-]?secret)\s*[:=]\s*['"]([0-9A-Za-z\-_./+]{16,64})['"]/gi, minEntropy: 3.5, group: 1 },
 ];
 
-// Files where matches are almost always examples/tests, not real leaks.
-const LOW_SIGNAL = /(^|\/)(test|tests|spec|specs|example|examples|fixture|fixtures|mock|mocks|sample|samples|__tests__|docs?|wiki|bench|benches|benchmark|benchmarks|e2e)\//i;
-
 export function scanSecrets(files: RepoFile[]): Finding[] {
   const findings: Finding[] = [];
   for (const f of files) {
     if (!f.text) continue;
     const text = f.text;
-    const dampen = LOW_SIGNAL.test(f.path);
+    const dampen = isLowSignalPath(f.path);
     const seen = new Set<string>();
     for (const rule of RULES) {
       rule.re.lastIndex = 0;
@@ -57,7 +54,7 @@ export function scanSecrets(files: RepoFile[]): Finding[] {
         findings.push({
           severity,
           category: "secret",
-          title: dampen ? `${rule.title} (in test/example path)` : rule.title,
+          title: dampen ? `${rule.title} (in docs, tests or examples)` : rule.title,
           file: f.path,
           line,
           detail: "Possible credential committed to the repository.",
