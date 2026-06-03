@@ -76,7 +76,8 @@ h1{font-size:20px;margin:26px 0 4px;font-weight:600;word-break:break-all}
 code{background:var(--mantle);padding:2px 6px;border-radius:6px;color:var(--lavender);font-size:13px}
 
 .box{margin-top:24px;display:flex;gap:8px}
-.box.mini{max-width:440px;margin:16px auto 6px}
+.back{display:inline-block;color:var(--subtext0);font-size:14px;font-weight:600;text-decoration:none;margin-bottom:8px;transition:color .15s ease}
+.back:hover{color:var(--text);text-decoration:none}
 input{flex:1;background:var(--mantle);border:1px solid var(--surface0);color:var(--text);padding:11px 13px;border-radius:8px;font:inherit}
 input:focus{outline:none;border-color:var(--blue)}
 button{background:var(--mauve);color:var(--crust);border:0;padding:11px 18px;border-radius:8px;font:inherit;font-weight:700;cursor:pointer}
@@ -190,22 +191,14 @@ export function renderReport(r: Report): string {
   const notes = r.notes.map((n) => `<div class="note">${escapeHtml(n)}</div>`).join("");
 
   const inner = `
+<a class="back" href="/">← back</a>
 <div class="logobar"><a class="logo" href="https://github.com/fletcherholt/frisk">frisk</a><span class="logo-hint">check out the repo ↗</span></div>
-<form class="box mini" onsubmit="go(event)">
-  <input id="u" placeholder="scan another repo: owner/repo" autocomplete="off" autocapitalize="off" spellcheck="false">
-  <button type="submit">frisk</button>
-</form>
 <h1>${escapeHtml(r.owner)}/${escapeHtml(r.repo)}</h1>
 <div class="sub">commit ${r.sha.slice(0, 10)} · ${r.fileCount} files scanned${r.truncated ? " (truncated)" : ""} · <a href="https://github.com/${escapeHtml(r.owner)}/${escapeHtml(r.repo)}">GitHub</a>${r.cached ? " · cached" : ""}</div>
 <div class="badge" style="background:${LEVEL_COLOR[r.score.level]}">${LEVEL_LABEL[r.score.level]}</div>
 <div class="counts">${counts || '<span class="pill" style="background:#a6e3a1">no findings</span>'}</div>
 ${notes}
 ${r.findings.length === 0 ? '<div class="clean">Nothing flagged. No secrets, suspicious code, vulnerable deps, or bad binaries.</div>' : body}
-<script>
-function go(e){e.preventDefault();var v=document.getElementById('u').value.trim();
-var m=v.match(/(?:github\\.com\\/)?([^\\/\\s]+)\\/([^\\/\\s#?]+)/);
-if(m)location.href='/'+m[1]+'/'+m[2].replace(/\\.git$/,'');}
-</script>
 `;
   return shell(inner, false, `✓ ${r.owner}/${r.repo}`);
 }
