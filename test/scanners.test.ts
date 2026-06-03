@@ -132,3 +132,38 @@ describe("patterns comment dampening", () => {
     expect(f[0].title).toContain("vendored");
   });
 });
+
+import { parseManifest } from "../src/scanners/deps";
+import { isLowSignalPath } from "../src/util";
+
+describe("dependency parsing accuracy", () => {
+  it("resolves npm aliases to the real package, not the alias key", () => {
+    const deps = parseManifest("package.json", JSON.stringify({
+      dependencies: { "eslint-v7": "npm:eslint@7.7.0", "scheduler-0-13": "npm:scheduler@0.13.0" },
+    }));
+    expect(deps.map((d) => d.name).sort()).toEqual(["eslint", "scheduler"]);
+  });
+  it("skips workspace, file and link specs", () => {
+    const deps = parseManifest("package.json", JSON.stringify({
+      dependencies: { a: "workspace:*", b: "file:../b", c: "link:../c", d: "1.2.3" },
+    }));
+    expect(deps.map((d) => d.name)).toEqual(["d"]);
+  });
+});
+
+describe("low-signal path detection", () => {
+  it("treats co-located test files as low signal", () => {
+    expect(isLowSignalPath("pkg/login/connectors/oauth_test.go")).toBe(true);
+    expect(isLowSignalPath("src/foo.test.ts")).toBe(true);
+    expect(isLowSignalPath("tests/test_login.py")).toBe(true);
+    expect(isLowSignalPath("src/latest.js")).toBe(false);
+    expect(isLowSignalPath("src/app.ts")).toBe(false);
+  });
+});
+
+describe("generic credential rejects wordy values", () => {
+  it("does not flag theme/scope tokens as credentials", () => {
+    const f = scanSecretsText("theme.ts", "token: 'keyword.operator.class',");
+    expect(f.some((x) => x.title === "Hardcoded credential")).toBe(false);
+  });
+});

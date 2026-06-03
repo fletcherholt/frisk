@@ -11,7 +11,10 @@ interface Rule {
   minEntropy?: number;
   group?: number;
   validate?: ValidatableType;
+  reject?: RegExp;
 }
+
+const WORDY = /^[a-z]+(?:[._-][a-z]+)+$/;
 
 const RULES: Rule[] = [
   { id: "aws-akid", title: "AWS access key ID", severity: "high", re: /\bAKIA[0-9A-Z]{16}\b/g },
@@ -26,7 +29,7 @@ const RULES: Rule[] = [
   { id: "jwt", title: "JSON Web Token", severity: "medium", re: /\beyJ[A-Za-z0-9_-]{8,1024}\.[A-Za-z0-9_-]{8,1024}\.[A-Za-z0-9_-]{8,1024}\b/g },
   { id: "slack-webhook", title: "Slack webhook URL", severity: "high", re: /https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/]+/g },
   { id: "npm-token", title: "npm access token", severity: "high", re: /\bnpm_[0-9A-Za-z]{36}\b/g, validate: "npm" },
-  { id: "generic-secret", title: "Hardcoded credential", severity: "medium", re: /(?:api[_-]?key|secret|token|passwd|password|client[_-]?secret)\s*[:=]\s*['"]([0-9A-Za-z\-_./+]{16,64})['"]/gi, minEntropy: 3.5, group: 1 },
+  { id: "generic-secret", title: "Hardcoded credential", severity: "medium", re: /(?:api[_-]?key|secret|token|passwd|password|client[_-]?secret)\s*[:=]\s*['"]([0-9A-Za-z\-_./+]{16,64})['"]/gi, minEntropy: 4.0, group: 1, reject: WORDY },
 ];
 
 export interface SecretCandidate {
@@ -75,6 +78,7 @@ export function scanSecretsText(path: string, text: string): Finding[] {
       if (m.index === rule.re.lastIndex) rule.re.lastIndex++;
       const probe = m[rule.group ?? 0] ?? m[0];
       if (rule.minEntropy && shannon(probe) < rule.minEntropy) continue;
+      if (rule.reject && rule.reject.test(probe)) continue;
       const line = lineOf(text, m.index);
       const key = `${rule.id}:${line}`;
       if (seen.has(key)) continue;

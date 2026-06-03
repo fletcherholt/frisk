@@ -15,6 +15,20 @@ function pinVersion(spec: string): string | null {
   return m ? m[0] : null;
 }
 
+const NON_REGISTRY =
+  /^(?:file:|link:|workspace:|git\+|git:|https?:|github:|portal:|patch:|catalog:|\.{0,2}\/)/i;
+
+function resolveNpm(name: string, spec: string): { name: string; version: string } | null {
+  const alias = spec.match(/^npm:(@?[^@/][^@]*(?:\/[^@]+)?)@(.+)$/);
+  if (alias) {
+    const v = pinVersion(alias[2]);
+    return v ? { name: alias[1], version: v } : null;
+  }
+  if (NON_REGISTRY.test(spec)) return null;
+  const v = pinVersion(spec);
+  return v ? { name, version: v } : null;
+}
+
 function parsePackageJson(text: string, file: string): Dep[] {
   const out: Dep[] = [];
   try {
@@ -23,8 +37,8 @@ function parsePackageJson(text: string, file: string): Dep[] {
       const deps = j[field] as Record<string, string> | undefined;
       if (!deps) continue;
       for (const [name, spec] of Object.entries(deps)) {
-        const v = pinVersion(String(spec));
-        if (v) out.push({ name, ecosystem: "npm", version: v, file });
+        const real = resolveNpm(name, String(spec));
+        if (real) out.push({ name: real.name, ecosystem: "npm", version: real.version, file });
       }
     }
   } catch {

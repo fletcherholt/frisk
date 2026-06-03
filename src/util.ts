@@ -1,9 +1,11 @@
 const LOW_SIGNAL_DIR =
   /(^|\/)(tests?|testdata|test[-_]data|specs?|__tests__|examples?|fixtures?|mocks?|samples?|docs?|docs_src|documentation|wiki|benches?|benchmarks?|e2e|vendor|vendored|third[-_]party|node_modules)\//i;
 const DOC_FILE = /\.(md|mdx|markdown|rst|adoc|txt)$|(^|\/)readme[^/]*$/i;
+const TEST_FILE =
+  /(?:^|\/)(?:test_[^/]+|[^/]+[._-](?:test|spec)s?)\.[A-Za-z0-9]+$/i;
 
 export function isLowSignalPath(path: string): boolean {
-  return LOW_SIGNAL_DIR.test(path) || DOC_FILE.test(path);
+  return LOW_SIGNAL_DIR.test(path) || DOC_FILE.test(path) || TEST_FILE.test(path);
 }
 
 export class HttpError extends Error {
