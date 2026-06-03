@@ -1,6 +1,7 @@
 import type { Finding, Report, Severity } from "./types";
 import { escapeHtml } from "./util";
 import { FAVICON } from "./favicon";
+import { CUR_NORMAL, CUR_LINK, CUR_TEXT } from "./cursors";
 
 const SEV_ORDER: Severity[] = ["critical", "high", "medium", "low", "info"];
 
@@ -38,7 +39,9 @@ const CSS = `
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--base);color:var(--text)}
-body{font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif}
+body{font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;cursor:url("${CUR_NORMAL}"),auto}
+a,button,summary{cursor:url("${CUR_LINK}"),pointer}
+input,textarea{cursor:url("${CUR_TEXT}"),text}
 code,.snip,.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
 a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 
