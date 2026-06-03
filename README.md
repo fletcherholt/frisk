@@ -6,7 +6,7 @@
 
 **frisk it before you clone it.**
 
-Scan any public GitHub repo for threats. No clone, no login.
+A free, no-login security scanner for any public GitHub repository. Check any repo for leaked secrets, malware, malicious packages and vulnerable dependencies before you clone or run it, straight from the URL and without cloning. Live at **[friskit.dev](https://friskit.dev)**.
 
 [![live](https://img.shields.io/badge/live-friskit.dev-cba6f7?style=flat-square)](https://friskit.dev)
 [![licence](https://img.shields.io/github/license/fletcherholt/frisk?style=flat-square&color=a6e3a1)](LICENSE)
