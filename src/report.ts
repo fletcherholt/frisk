@@ -111,9 +111,10 @@ button:hover{filter:brightness(1.08)}
 .clean{text-align:center;padding:40px 0;color:var(--green);font-size:17px}
 
 /* scanning interstitial loader */
-.loader{display:block;width:calc(100px - 24px);height:50px;margin:0 auto;position:relative}
-.loader:before{content:"";position:absolute;inset:0;margin:auto;width:20px;height:20px;border-radius:50%;background:var(--text);transform-origin:-24px 50%;animation:spin 1s infinite linear}
-.loader:after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--text);width:48px;height:48px;border-radius:50%}
+/* a small ball orbiting symmetrically around a central ball */
+.loader{display:block;width:64px;height:64px;margin:0 auto;position:relative}
+.loader:after{content:"";position:absolute;inset:0;margin:auto;width:34px;height:34px;border-radius:50%;background:var(--text)}
+.loader:before{content:"";position:absolute;left:50%;top:0;margin:-7px;width:14px;height:14px;border-radius:50%;background:var(--text);transform-origin:7px 39px;animation:spin 1.1s infinite linear}
 @keyframes spin{100%{transform:rotate(360deg)}}
 .scan-label{margin-top:30px;text-align:center;color:var(--subtext0);font-size:15px;line-height:1.7}
 .scan-label b{color:var(--text);font-weight:600}
