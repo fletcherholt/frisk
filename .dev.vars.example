@@ -1,0 +1,3 @@
+# Copy to .dev.vars for local `wrangler dev`. Do NOT commit .dev.vars.
+GITHUB_TOKEN=ghp_your_token_here
+VT_API_KEY=your_virustotal_api_key_here

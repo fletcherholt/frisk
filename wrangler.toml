@@ -1,0 +1,24 @@
+name = "frisk"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+# KV namespaces — create with:
+#   wrangler kv namespace create SCAN_CACHE
+#   wrangler kv namespace create VT_CACHE
+#   wrangler kv namespace create RATELIMIT
+# then paste the returned ids below.
+[[kv_namespaces]]
+binding = "SCAN_CACHE"
+id = "c3682cbcdb0c4956b19fa050423f2fb3"
+
+[[kv_namespaces]]
+binding = "VT_CACHE"
+id = "d6f2de1734784417b05947da722de8e9"
+
+[[kv_namespaces]]
+binding = "RATELIMIT"
+id = "9e3f624e2a6249c6bb6cdf75166f6a63"
+
+# Secrets (do NOT put here) — set with:
+#   wrangler secret put GITHUB_TOKEN   # public_repo scope, raises GitHub API 60->5000/hr
+#   wrangler secret put VT_API_KEY     # free VirusTotal API key
