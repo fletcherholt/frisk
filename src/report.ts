@@ -130,10 +130,10 @@ button:hover{filter:brightness(1.08)}
 .copy{margin-top:10px;color:var(--surface1);font-size:12px;text-align:center}
 `;
 
-function shell(inner: string, landing = false): string {
+function shell(inner: string, landing = false, title = "friskit"): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>friskit</title>
+<title>${escapeHtml(title)}</title>
 <link rel="icon" href="${FAVICON}">
 <style>${CSS}</style></head>
 <body><div class="page${landing ? " page-landing" : ""}">
@@ -197,7 +197,7 @@ export function renderReport(r: Report): string {
 ${notes}
 ${r.findings.length === 0 ? '<div class="clean">Nothing flagged. No secrets, suspicious code, vulnerable deps, or bad binaries.</div>' : body}
 `;
-  return shell(inner);
+  return shell(inner, false, `✓ ${r.owner}/${r.repo}`);
 }
 
 export function landingPage(): string {
@@ -243,13 +243,15 @@ export function scanningPage(owner: string, repo: string): string {
 <script>
 (function(){
   var p=${path};
+  var seq=['','.','..','...','..','.'];var i=0;   // dots grow then shrink
+  setInterval(function(){document.title='scanning'+seq[i];i=(i+1)%seq.length;},350);
   var delay=100+Math.random()*3400;            // hold 0.1s to 3.5s
   var t0=Date.now();
   function go(){var w=Math.max(0,delay-(Date.now()-t0));setTimeout(function(){location.replace(p+'?view=1');},w);}
   fetch('/api/scan'+p).then(go,go);
 })();
 </script>`;
-  return shell(inner, true);
+  return shell(inner, true, "scanning");
 }
 
 export function errorPage(owner: string, repo: string, message: string): string {
