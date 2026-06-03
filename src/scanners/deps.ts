@@ -10,7 +10,6 @@ export interface Dep {
 
 const MAX_QUERIES = 500;
 
-/** Pull the first concrete semver out of a version spec; null for pure ranges. */
 function pinVersion(spec: string): string | null {
   const m = spec.match(/\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?/);
   return m ? m[0] : null;
@@ -29,7 +28,7 @@ function parsePackageJson(text: string, file: string): Dep[] {
       }
     }
   } catch {
-    /* malformed package.json, ignore */
+    return out;
   }
   return out;
 }
@@ -75,7 +74,6 @@ function parseCargo(text: string, file: string): Dep[] {
   return out;
 }
 
-/** Parse one manifest file into its declared dependencies. */
 export function parseManifest(path: string, text: string): Dep[] {
   if (/(^|\/)package\.json$/.test(path)) return parsePackageJson(text, path);
   if (/(^|\/)requirements[\w.-]*\.txt$/.test(path)) return parseRequirements(text, path);
@@ -84,14 +82,11 @@ export function parseManifest(path: string, text: string): Dep[] {
   return [];
 }
 
-/** Whether a path is a dependency manifest worth parsing. */
 export function isManifest(path: string): boolean {
   return /(^|\/)(package\.json|requirements[\w.-]*\.txt|go\.mod|Cargo\.toml)$/.test(path);
 }
 
-/** Query OSV for a collected dependency set and turn vulns into findings. */
 export async function queryOsv(collected: Dep[]): Promise<Finding[]> {
-  // Dedupe identical packages (same name, version and ecosystem).
   const seen = new Set<string>();
   const deps = collected
     .filter((d) => {
@@ -114,6 +109,7 @@ export async function queryOsv(collected: Dep[]): Promise<Finding[]> {
           version: d.version,
         })),
       }),
+      signal: AbortSignal.timeout(15_000),
     });
     if (!r.ok) return [];
     results = ((await r.json()) as { results?: typeof results }).results ?? [];

@@ -20,7 +20,7 @@ import {
 } from "./scanners/binaries";
 import { scoreFindings } from "./score";
 import { getCached, putCached } from "./cache";
-import { checkRateLimit, checkGlobalCapacity } from "./ratelimit";
+import { checkRateLimit } from "./ratelimit";
 import {
   renderReport,
   landingPage,
@@ -43,29 +43,22 @@ function busyResponse(wantJson: boolean, owner: string, repo: string): Response 
   return htmlResponse(busyPage(owner, repo), 503);
 }
 
-// GitHub owner and repo names are limited to this set. Validating against it
-// rejects junk paths and blocks any HTML/script injection through the URL.
 const NAME = /^[A-Za-z0-9._-]+$/;
 
-// Streaming removes the memory wall, but the total work (decompressing plus
-// scanning) still costs CPU time, which Cloudflare caps per request. This bound
-// keeps every repo inside that budget; bigger ones truncate gracefully.
 const MAX_FILES = 7000;
-const MAX_BYTES = 90 * 1024 * 1024; // decompressed bytes read before truncating
-const MAX_BINARY_BYTES = 32 * 1024 * 1024; // largest binary we will hash
-const MAX_FINDINGS = 1000; // cap stored/rendered findings (score still uses all)
+const MAX_BYTES = 90 * 1024 * 1024;
+const MAX_BINARY_BYTES = 32 * 1024 * 1024;
+const MAX_FINDINGS = 1000;
 
 const DECODER = new TextDecoder();
 
 function classify(name: string, size: number): FileKind | "skip" {
   if (SCAN_BINARY_EXT.test(name)) {
-    // Test fixtures and sample binaries are noise and would waste the scarce
-    // VirusTotal budget; leave it for binaries in real code paths.
     if (isLowSignalPath(name) || size > MAX_BINARY_BYTES) return "skip";
     return "binary";
   }
-  if (BINARY_EXT.test(name)) return "skip"; // images, archives, fonts, media
-  if (size > MAX_DECODE) return "skip"; // oversized text / minified bundles
+  if (BINARY_EXT.test(name)) return "skip";
+  if (size > MAX_DECODE) return "skip";
   return "text";
 }
 
@@ -108,8 +101,6 @@ export async function runScan(
   if (stats.truncated)
     notes.push("Repository is very large, so only part of it was scanned.");
 
-  // Score on the full set, but cap what we store/render so a pathological repo
-  // cannot produce a giant report or blow KV's value-size limit.
   const score = scoreFindings(findings);
   let shown = findings;
   if (findings.length > MAX_FINDINGS) {
@@ -152,7 +143,6 @@ export default {
       return htmlResponse(landingPage());
     if (path === "favicon.ico") return new Response(null, { status: 204 });
 
-    // Match owner/repo, tolerating deeper GitHub URL paths (/tree/main, etc.).
     const apiMatch = path.match(/^api\/scan\/([^/]+)\/([^/]+)(?:\/.*)?$/);
     const wantJson = !!apiMatch;
     const m = apiMatch ?? path.match(/^([^/]+)\/([^/]+)(?:\/.*)?$/);
@@ -163,8 +153,6 @@ export default {
     if (!NAME.test(owner) || !NAME.test(repo))
       return htmlResponse(landingPage(), 404);
 
-    // Browser hitting the repo page (no ?view) gets the scanning interstitial.
-    // Its JS runs the scan via /api/scan, then redirects here with ?view=1.
     if (!wantJson && !url.searchParams.has("view")) {
       return htmlResponse(scanningPage(owner, repo));
     }
@@ -175,7 +163,6 @@ export default {
       if (report) {
         report = { ...report, cached: true };
       } else {
-        // Only a real scan (cache miss) costs a rate-limit token.
         const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
         const rl = await checkRateLimit(ip, env);
         if (!rl.ok) {
@@ -184,21 +171,14 @@ export default {
             ? jsonResponse({ error: msg }, 429)
             : htmlResponse(errorPage(owner, repo, msg), 429);
         }
-        // Site-wide capacity: ask the user to wait when we are slammed.
-        if (!(await checkGlobalCapacity(env)))
-          return busyResponse(wantJson, owner, repo);
         report = await runScan(owner, repo, sha, env, ctx);
       }
       return wantJson
         ? jsonResponse(report)
         : htmlResponse(renderReport(report));
     } catch (e) {
-      // A GitHub budget exhaustion means the shared capacity is used up, which
-      // for users is the same "too busy, wait" situation.
       if (e instanceof HttpError && e.status === 429)
         return busyResponse(wantJson, owner, repo);
-      // Only our own HttpError messages are safe to show. Anything else is an
-      // internal failure; show a generic message rather than leaking details.
       const status = e instanceof HttpError ? e.status : 500;
       const msg = e instanceof HttpError
         ? e.message

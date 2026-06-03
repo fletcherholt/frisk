@@ -1,8 +1,3 @@
-// Streaming tar reader. Pulls one file at a time from a byte stream so we never
-// hold a whole repository in memory. Handles cross-chunk boundaries, 512-byte
-// block padding, GNU long names and the pax extended headers that GitHub's
-// tarballs use for long paths.
-
 const DEC = new TextDecoder();
 
 export type FileKind = "text" | "binary";
@@ -16,7 +11,7 @@ export interface TarFile {
 
 export interface TarLimits {
   maxFiles: number;
-  maxBytes: number; // decompressed bytes consumed before we stop
+  maxBytes: number;
 }
 
 export interface TarStats {
@@ -25,7 +20,6 @@ export interface TarStats {
   truncated: boolean;
 }
 
-/** Pull bytes from a ReadableStream on demand, buffering only what is queued. */
 class ByteSource {
   private reader: ReadableStreamDefaultReader<Uint8Array>;
   private queue: Uint8Array[] = [];
@@ -50,11 +44,8 @@ class ByteSource {
     return true;
   }
 
-  /** Read exactly n bytes, or fewer if the stream ends first. */
   async read(n: number): Promise<Uint8Array> {
-    while (this.queued < n && (await this.pull())) {
-      /* keep pulling */
-    }
+    while (this.queued < n && (await this.pull())) {}
     const take = Math.min(n, this.queued);
     const out = new Uint8Array(take);
     let off = 0;
@@ -76,14 +67,11 @@ class ByteSource {
     return out;
   }
 
-  /** Discard n bytes without allocating a big buffer. */
   async skip(n: number): Promise<void> {
     let remaining = n;
     while (remaining > 0) {
-      while (this.queued === 0 && (await this.pull())) {
-        /* refill */
-      }
-      if (this.queued === 0) break; // stream ended early
+      while (this.queued === 0 && (await this.pull())) {}
+      if (this.queued === 0) break;
       const head = this.queue[0];
       if (head.length <= remaining) {
         remaining -= head.length;
@@ -100,9 +88,7 @@ class ByteSource {
   async cancel(): Promise<void> {
     try {
       await this.reader.cancel();
-    } catch {
-      /* already closed */
-    }
+    } catch {}
   }
 }
 
@@ -118,7 +104,6 @@ function readCStr(buf: Uint8Array, off: number, len: number): string {
   return DEC.decode(buf.subarray(off, end));
 }
 
-/** Size field at offset 124 (12 bytes), octal ASCII, with base-256 fallback. */
 function parseSize(h: Uint8Array): number {
   if (h[124] & 0x80) {
     let n = 0;
@@ -134,22 +119,20 @@ function parseSize(h: Uint8Array): number {
   return parseInt(s.trim() || "0", 8) || 0;
 }
 
-/** Strip the leading `repo-sha/` segment GitHub adds to every path. */
 function stripTop(name: string): string {
   const i = name.indexOf("/");
   return i === -1 ? "" : name.slice(i + 1);
 }
 
-/** Extract the `path=` record from a pax extended header payload. */
 function paxPath(data: Uint8Array): string | null {
   let i = 0;
   while (i < data.length) {
     let j = i;
-    while (j < data.length && data[j] !== 0x20) j++; // space ends the length digits
+    while (j < data.length && data[j] !== 0x20) j++;
     const len = parseInt(readCStr(data, i, j - i), 10);
     if (!len || i + len > data.length) break;
-    const rec = data.subarray(j + 1, i + len - 1); // drop trailing newline
-    const eq = rec.indexOf(0x3d); // '='
+    const rec = data.subarray(j + 1, i + len - 1);
+    const eq = rec.indexOf(0x3d);
     if (eq > 0 && DEC.decode(rec.subarray(0, eq)) === "path")
       return DEC.decode(rec.subarray(eq + 1));
     i += len;
@@ -157,10 +140,6 @@ function paxPath(data: Uint8Array): string | null {
   return null;
 }
 
-/**
- * Yield each file in the tar stream that `classify` does not mark "skip".
- * Updates `stats` in place; sets truncated when a limit is reached.
- */
 export async function* streamTar(
   stream: ReadableStream<Uint8Array>,
   classify: (name: string, size: number) => FileKind | "skip",
@@ -184,7 +163,6 @@ export async function* streamTar(
       const padded = Math.ceil(size / 512) * 512;
       const pad = padded - size;
 
-      // pax extended header (long path lives here on GitHub tarballs)
       if (type === 0x78 || type === 0x58) {
         const data = await src.read(size);
         await src.skip(pad);
@@ -193,7 +171,6 @@ export async function* streamTar(
         if (p) pending = p;
         continue;
       }
-      // GNU long name
       if (type === 0x4c) {
         const data = await src.read(size);
         await src.skip(pad);
@@ -201,7 +178,6 @@ export async function* streamTar(
         pending = readCStr(data, 0, data.length).replace(/\0+$/, "");
         continue;
       }
-      // pax global header
       if (type === 0x67) {
         await src.skip(padded);
         stats.bytes += padded;
@@ -212,7 +188,7 @@ export async function* streamTar(
       pending = null;
       stats.bytes += padded;
 
-      const isFile = type === 0 || type === 0x30; // '\0' or '0'
+      const isFile = type === 0 || type === 0x30;
       if (!isFile || !name) {
         await src.skip(padded);
         continue;

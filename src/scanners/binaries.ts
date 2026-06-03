@@ -1,10 +1,9 @@
 import type { Env, Finding } from "../types";
 
-// Executable/library formats worth a VirusTotal lookup.
 export const SCAN_BINARY_EXT =
   /\.(exe|dll|so|dylib|bin|node|wasm|msi|apk|jar|deb|rpm|dmg|pkg|scr|com|elf)$/i;
 
-export const MAX_BINARIES = 10; // per scan, to respect VT free quota (4/min, 500/day)
+export const MAX_BINARIES = 10;
 const DAILY_CAP = 480;
 const VT_CACHE_TTL = 7 * 86400;
 
@@ -39,7 +38,9 @@ async function quotaLeft(env: Env): Promise<boolean> {
 async function bumpQuota(env: Env): Promise<void> {
   const key = `vtq:${today()}`;
   const used = Number((await env.RATELIMIT.get(key)) ?? "0");
-  await env.RATELIMIT.put(key, String(used + 1), { expirationTtl: 2 * 86400 });
+  await env.RATELIMIT.put(key, String(used + 1), {
+    expirationTtl: 2 * 86400,
+  }).catch(() => {});
 }
 
 async function lookup(hash: string, env: Env): Promise<VtResult | null> {
@@ -50,6 +51,7 @@ async function lookup(hash: string, env: Env): Promise<VtResult | null> {
 
   const r = await fetch(`https://www.virustotal.com/api/v3/files/${hash}`, {
     headers: { "x-apikey": env.VT_API_KEY },
+    signal: AbortSignal.timeout(10_000),
   });
   await bumpQuota(env);
 
@@ -65,19 +67,15 @@ async function lookup(hash: string, env: Env): Promise<VtResult | null> {
     const total = Object.values(stats).reduce((a, b) => a + (Number(b) || 0), 0);
     result = { found: true, malicious, total };
   } else {
-    return null; // 401/429/5xx: do not cache, treat as "not checked"
+    return null;
   }
 
   await env.VT_CACHE.put(hash, JSON.stringify(result), {
     expirationTtl: VT_CACHE_TTL,
-  });
+  }).catch(() => {});
   return result;
 }
 
-/**
- * Look up already-hashed binaries on VirusTotal. `totalSeen` is the number of
- * binaries the scan encountered (may exceed targets.length once capped).
- */
 export async function lookupBinaries(
   targets: BinTarget[],
   totalSeen: number,

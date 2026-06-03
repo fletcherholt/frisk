@@ -1,5 +1,3 @@
-// Paths where a match is almost always an example, fixture, test or doc rather
-// than live code: used to dampen or skip findings across the scanners.
 const LOW_SIGNAL_DIR =
   /(^|\/)(tests?|testdata|test[-_]data|specs?|__tests__|examples?|fixtures?|mocks?|samples?|docs?|docs_src|documentation|wiki|benches?|benchmarks?|e2e)\//i;
 const DOC_FILE = /\.(md|mdx|markdown|rst|adoc|txt)$|(^|\/)readme[^/]*$/i;
@@ -16,7 +14,6 @@ export class HttpError extends Error {
   }
 }
 
-/** 1-based line number of a character index within text. */
 export function lineOf(text: string, index: number): number {
   let line = 1;
   const n = Math.min(index, text.length);
@@ -24,7 +21,6 @@ export function lineOf(text: string, index: number): number {
   return line;
 }
 
-/** The single source line containing `index`, trimmed and length-capped. */
 export function snippetAt(text: string, index: number, max = 160): string {
   const start = text.lastIndexOf("\n", index) + 1;
   let end = text.indexOf("\n", index);
@@ -33,7 +29,6 @@ export function snippetAt(text: string, index: number, max = 160): string {
   return line.length > max ? line.slice(0, max) + "…" : line;
 }
 
-/** Shannon entropy (bits per char) of a string: high for keys/tokens. */
 export function shannon(s: string): number {
   if (!s) return 0;
   const freq: Record<string, number> = {};

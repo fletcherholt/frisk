@@ -5,7 +5,6 @@ import { streamTar, type FileKind, type TarStats } from "../src/tar";
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-// Emit a buffer as a ReadableStream in small chunks to stress boundary handling.
 function streamOf(data: Uint8Array, chunk = 64): ReadableStream<Uint8Array> {
   let i = 0;
   return new ReadableStream<Uint8Array>({
@@ -34,7 +33,6 @@ async function collect(
   return { out, stats };
 }
 
-// Minimal tar builders for a hand-crafted pax entry (GitHub long-path format).
 function hdr(name: string, size: number, type: string): Uint8Array {
   const h = new Uint8Array(512);
   h.set(enc.encode(name.slice(0, 100)), 0);
@@ -86,7 +84,7 @@ describe("streamTar", () => {
 
   it("gives identical results across tiny and large chunk sizes", async () => {
     const tar = createTar([
-      { name: "r/one.txt", data: "x".repeat(600) }, // spans multiple 512 blocks
+      { name: "r/one.txt", data: "x".repeat(600) },
       { name: "r/two.txt", data: "y" },
     ]);
     const tiny = await collect(tar, all, 3);
@@ -112,9 +110,9 @@ describe("streamTar", () => {
     const tar = concat([
       hdr("paxheader", rec.length, "x"),
       pad512(rec),
-      hdr("repo-abc/file.js", data.length, "0"), // short fallback name in the real header
+      hdr("repo-abc/file.js", data.length, "0"),
       pad512(data),
-      new Uint8Array(1024), // end-of-archive zero blocks
+      new Uint8Array(1024),
     ]);
     const { out } = await collect(tar, all);
     expect(out).toEqual([

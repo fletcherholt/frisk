@@ -7,7 +7,6 @@ interface Rule {
   re: RegExp;
   severity: Severity;
   detail: string;
-  /** Context sensitive: drop to info in docs, examples and tests. */
   soft?: boolean;
 }
 
@@ -19,7 +18,6 @@ const RULES: Rule[] = [
   { id: "powershell-enc", title: "Encoded PowerShell command", severity: "high", detail: "Runs a base64 encoded PowerShell payload.", re: /powershell(?:\.exe)?\s+.{0,300}-e(?:nc(?:odedcommand)?)?\s+[A-Za-z0-9+/=]{40,4096}/gi },
   { id: "base64-blob", title: "Large embedded base64 blob", severity: "low", soft: true, detail: "A long base64 string. Usually embedded data, occasionally a hidden payload.", re: /['"`][A-Za-z0-9+/]{350,}/g },
   { id: "hex-blob", title: "Large hex/byte blob", severity: "low", soft: true, detail: "A long escaped byte sequence. Occasionally hides shellcode.", re: /(?:\\x[0-9a-fA-F]{2}){80,}/g },
-  // Context sensitive rules below: normal in docs and tooling, suspicious in untrusted code.
   { id: "curl-pipe-sh", title: "Pipe remote script to shell", severity: "medium", soft: true, detail: "Downloads and runs a remote script. Standard in install docs and CI, only risky when it runs automatically from untrusted code.", re: /\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:ba|z|da)?sh\b/g },
   { id: "ssh-read", title: "Reads SSH private keys", severity: "high", soft: true, detail: "Accesses SSH private keys. Suspicious outside of SSH tooling.", re: /(?:\.ssh\/id_(?:rsa|ed25519|ecdsa|dsa)|\/\.ssh\/authorized_keys)/g },
   { id: "cloud-creds-read", title: "Reads cloud credentials file", severity: "low", soft: true, detail: "Reads the cloud credentials file. Normal for cloud SDKs and CLIs, only a concern in untrusted code.", re: /(?:\.aws\/credentials|\.config\/gcloud|\.azure\/credentials)/g },
@@ -28,10 +26,8 @@ const RULES: Rule[] = [
   { id: "discord-token", title: "Targets Discord tokens", severity: "high", soft: true, detail: "Reads Discord tokens. Info stealer behaviour.", re: /discord[^\n]{0,40}(?:leveldb|\.ldb)/gi },
 ];
 
-// CI and build files run commands as part of the project, not on a cloner.
 const CI_BUILD = /(^|\/)\.github\/|(^|\/)Dockerfile/i;
 
-// package.json install-hook check (these run automatically on `npm install`).
 const INSTALL_HOOKS = /"(pre|post)?install"\s*:/g;
 
 export function scanPatternsText(path: string, text: string): Finding[] {
@@ -39,8 +35,6 @@ export function scanPatternsText(path: string, text: string): Finding[] {
   const soft = isLowSignalPath(path) || CI_BUILD.test(path);
 
   for (const rule of RULES) {
-    // In docs, examples, tests and CI, context sensitive rules are just
-    // describing or running normal commands. Skip them entirely.
     if (rule.soft && soft) continue;
     rule.re.lastIndex = 0;
     let m: RegExpExecArray | null;
@@ -64,7 +58,6 @@ export function scanPatternsText(path: string, text: string): Finding[] {
     }
   }
 
-  // Install hooks only matter in package.json.
   if (/(^|\/)package\.json$/.test(path)) {
     INSTALL_HOOKS.lastIndex = 0;
     let m: RegExpExecArray | null;

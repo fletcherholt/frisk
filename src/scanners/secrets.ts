@@ -6,9 +6,8 @@ interface Rule {
   title: string;
   re: RegExp;
   severity: Severity;
-  /** If set, only fire when the matched group's entropy clears this bar. */
   minEntropy?: number;
-  group?: number; // which capture group to entropy-check (default 0)
+  group?: number;
 }
 
 const RULES: Rule[] = [
@@ -24,7 +23,6 @@ const RULES: Rule[] = [
   { id: "jwt", title: "JSON Web Token", severity: "medium", re: /\beyJ[A-Za-z0-9_-]{8,1024}\.[A-Za-z0-9_-]{8,1024}\.[A-Za-z0-9_-]{8,1024}\b/g },
   { id: "slack-webhook", title: "Slack webhook URL", severity: "high", re: /https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/]+/g },
   { id: "npm-token", title: "npm access token", severity: "high", re: /\bnpm_[0-9A-Za-z]{36}\b/g },
-  // Generic key=value with a high-entropy value.
   { id: "generic-secret", title: "Hardcoded credential", severity: "medium", re: /(?:api[_-]?key|secret|token|passwd|password|client[_-]?secret)\s*[:=]\s*['"]([0-9A-Za-z\-_./+]{16,64})['"]/gi, minEntropy: 3.5, group: 1 },
 ];
 
@@ -37,7 +35,7 @@ export function scanSecretsText(path: string, text: string): Finding[] {
     let m: RegExpExecArray | null;
     let perRule = 0;
     while ((m = rule.re.exec(text)) !== null) {
-      if (m.index === rule.re.lastIndex) rule.re.lastIndex++; // zero-width guard
+      if (m.index === rule.re.lastIndex) rule.re.lastIndex++;
       const probe = m[rule.group ?? 0] ?? m[0];
       if (rule.minEntropy && shannon(probe) < rule.minEntropy) continue;
       const line = lineOf(text, m.index);
@@ -56,7 +54,7 @@ export function scanSecretsText(path: string, text: string): Finding[] {
         detail: "Possible credential committed to the repository.",
         snippet: snippetAt(text, m.index),
       });
-      if (++perRule >= 25) break; // cap noisy files
+      if (++perRule >= 25) break;
     }
   }
   return findings;

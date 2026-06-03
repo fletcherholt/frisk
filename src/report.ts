@@ -5,13 +5,12 @@ import { CUR_NORMAL, CUR_LINK, CUR_TEXT } from "./cursors";
 
 const SEV_ORDER: Severity[] = ["critical", "high", "medium", "low", "info"];
 
-// Catppuccin Mocha accents
 const SEV_COLOR: Record<Severity, string> = {
-  critical: "#f38ba8", // red
-  high: "#fab387", // peach
-  medium: "#f9e2af", // yellow
-  low: "#89b4fa", // blue
-  info: "#6c7086", // overlay
+  critical: "#f38ba8",
+  high: "#fab387",
+  medium: "#f9e2af",
+  low: "#89b4fa",
+  info: "#6c7086",
 };
 
 const LEVEL_LABEL: Record<Report["score"]["level"], string> = {
@@ -27,7 +26,7 @@ const LEVEL_COLOR: Record<Report["score"]["level"], string> = {
   high: "#fab387",
   medium: "#f9e2af",
   low: "#89b4fa",
-  clean: "#a6e3a1", // green
+  clean: "#a6e3a1",
 };
 
 const CSS = `
@@ -48,12 +47,10 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 .page{min-height:100vh;display:flex;flex-direction:column}
 .wrap{max-width:720px;width:100%;margin:0 auto;padding:56px 20px 24px;flex:1}
 .bottom{max-width:720px;width:100%;margin:0 auto;padding:0 20px 36px}
-/* landing: centre the scanner, drop the toggle to the bottom of the main area */
 .page-landing .wrap{display:flex;flex-direction:column;padding-top:24px}
 .page-landing .hero{flex:1;display:flex;flex-direction:column;justify-content:center}
 .page-landing .explain{margin-top:0;padding-top:8px}
 
-/* entrance animation: logo blurs/scales in, the rest rises in just after */
 @keyframes logoIn{0%{opacity:0;transform:translateY(18px) scale(.94);filter:blur(10px)}100%{opacity:1;transform:none;filter:none}}
 @keyframes riseIn{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:none}}
 .page-landing .logobar{animation:logoIn .85s cubic-bezier(.2,.7,.2,1) both}
@@ -110,8 +107,6 @@ button:hover{filter:brightness(1.08)}
 
 .clean{text-align:center;padding:40px 0;color:var(--green);font-size:17px}
 
-/* scanning interstitial loader */
-/* a small ball orbiting symmetrically around a central ball */
 .loader{display:block;width:64px;height:64px;margin:0 auto;position:relative}
 .loader:after{content:"";position:absolute;inset:0;margin:auto;width:34px;height:34px;border-radius:50%;background:var(--text)}
 .loader:before{content:"";position:absolute;left:50%;top:0;margin:-7px;width:14px;height:14px;border-radius:50%;background:var(--text);transform-origin:7px 39px;animation:spin 1.1s infinite linear}
@@ -239,11 +234,11 @@ export function scanningPage(owner: string, repo: string): string {
 <script>
 (function(){
   var p=${path};
-  try{sessionStorage.removeItem('frisk_busy_tries');}catch(e){}  // fresh attempt resets the busy give-up
-  var seq=['','.','..','...','..','.'];var i=0;   // dots grow then shrink
+  try{sessionStorage.removeItem('frisk_busy_tries');}catch(e){}
+  var seq=['','.','..','...','..','.'];var i=0;
   var title='scanning';
   setInterval(function(){document.title=title+seq[i];i=(i+1)%seq.length;},350);
-  var delay=100+Math.random()*3400;            // hold 0.1s to 3.5s
+  var delay=100+Math.random()*3400;
   var t0=Date.now(), tries=0;
   var lbl=document.getElementById('lbl');
   function done(){location.replace(p+'?view=1');}
@@ -257,11 +252,10 @@ export function scanningPage(owner: string, repo: string): string {
       if(r.status===503){
         if(++tries>30){lbl.innerHTML='still very busy<br><span class="dim">please try again in a few minutes</span>';title='busy';return;}
         waiting();
-        setTimeout(attempt, 4000+Math.random()*3000);   // queue: retry until a slot frees
+        setTimeout(attempt, 4000+Math.random()*3000);
         return;
       }
       if(!r.ok){done();return;}
-      // Cached results show instantly; only a real scan holds the spinner.
       r.json().then(function(j){ (j&&j.cached) ? done() : go(); }, go);
     }, function(){ if(++tries>30){done();return;} setTimeout(attempt, 3000); });
   }

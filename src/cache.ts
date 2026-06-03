@@ -1,6 +1,10 @@
 import type { Env, Report } from "./types";
 
-const TTL = 86400; // 24h
+const TTL = 86400;
+
+function key(owner: string, repo: string, sha: string): string {
+  return `${owner}/${repo}@${sha}`.toLowerCase();
+}
 
 export async function getCached(
   env: Env,
@@ -8,16 +12,19 @@ export async function getCached(
   repo: string,
   sha: string,
 ): Promise<Report | null> {
-  const r = (await env.SCAN_CACHE.get(`${owner}/${repo}@${sha}`, "json")) as
-    | Report
-    | null;
-  return r;
+  try {
+    return (await env.SCAN_CACHE.get(key(owner, repo, sha), "json")) as
+      | Report
+      | null;
+  } catch {
+    return null;
+  }
 }
 
 export function putCached(env: Env, report: Report): Promise<void> {
   return env.SCAN_CACHE.put(
-    `${report.owner}/${report.repo}@${report.sha}`,
+    key(report.owner, report.repo, report.sha),
     JSON.stringify(report),
     { expirationTtl: TTL },
-  );
+  ).catch(() => {});
 }
