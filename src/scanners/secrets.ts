@@ -43,9 +43,7 @@ export interface SecretCandidate {
 }
 
 function isStrongKeyLeak(path: string): boolean {
-  return /(?:^|\/)id_(?:rsa|dsa|ecdsa|ed25519)$|(?:^|\/)\.env(?:\.|$)|secret|priv(?:ate)?[-_]?key|prod(?:uction)?/i.test(
-    path,
-  );
+  return /(?:^|\/)id_(?:rsa|dsa|ecdsa|ed25519)$|(?:^|\/)\.env(?:\.|$)/i.test(path);
 }
 
 export function validatableSecrets(path: string, text: string): SecretCandidate[] {
