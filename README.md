@@ -11,6 +11,10 @@ A free, no-login security scanner for any public GitHub repository. Check any re
 [![live](https://img.shields.io/badge/live-friskit.dev-cba6f7?style=flat-square)](https://friskit.dev)
 [![licence](https://img.shields.io/github/license/fletcherholt/frisk?style=flat-square&color=a6e3a1)](LICENSE)
 
+<br>
+
+<a href="https://friskit.dev"><img src="assets/frisk-demo.gif" alt="frisk scanning a GitHub repo for leaked secrets, malware and vulnerable dependencies" width="840"></a>
+
 </div>
 
 ## Use it
