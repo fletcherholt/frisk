@@ -13,7 +13,7 @@ A free, no-login security scanner for any public GitHub repository. Check any re
 
 <br>
 
-<a href="https://friskit.dev"><img src="assets/frisk-demo.gif" alt="frisk scanning a GitHub repo for leaked secrets, malware and vulnerable dependencies" width="840"></a>
+<a href="https://friskit.dev"><img src="assets/frisk-demo.webp" alt="frisk scanning a GitHub repo for leaked secrets, malware and vulnerable dependencies" width="840"></a>
 
 </div>
 
