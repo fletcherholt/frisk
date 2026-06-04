@@ -205,6 +205,10 @@ export async function* streamTar(
       }
 
       const bytes = await src.read(size);
+      if (bytes.length < size) {
+        stats.truncated = true;
+        break;
+      }
       await src.skip(pad);
       stats.files++;
       yield { name, bytes, kind, size };

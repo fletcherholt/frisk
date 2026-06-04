@@ -3,22 +3,25 @@ const LOW_SIGNAL_DIR =
 const DOC_FILE = /\.(md|mdx|markdown|rst|adoc|txt)$|(^|\/)readme[^/]*$/i;
 const TEST_FILE =
   /(?:^|\/)(?:test_[^/]+|[^/]+[._-](?:test|spec)s?)\.[A-Za-z0-9]+$/i;
+const LOCKFILE =
+  /(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|pnpm-lock\.yaml|bun\.lockb?|go\.sum|gradle\.lockfile|(?:yarn|Cargo|Gemfile|composer|poetry|Pipfile|flake|mix|deno|elm)\.lock)$/i;
 const GENERATED_FILE =
-  /(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|pnpm-lock\.yaml|bun\.lockb?|go\.sum|gradle\.lockfile)$|\.lock$|\.(?:min\.(?:js|css|mjs)|map)$|(?:\.pb\.go|_pb2\.py|\.generated\.[A-Za-z0-9]+|\.g\.dart)$/i;
-const SKIP_FILE =
-  /(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|pnpm-lock\.yaml|bun\.lockb?|go\.sum|gradle\.lockfile)$|\.lock$|\.map$/i;
+  /\.(?:min\.(?:js|css|mjs)|map)$|(?:\.pb\.go|_pb2\.py|\.generated\.[A-Za-z0-9]+|\.g\.dart)$/i;
+const EXAMPLE_FILE = /\.(?:example|sample|template|dist)$/i;
 
 export function isLowSignalPath(path: string): boolean {
   return (
     LOW_SIGNAL_DIR.test(path) ||
     DOC_FILE.test(path) ||
     TEST_FILE.test(path) ||
-    GENERATED_FILE.test(path)
+    GENERATED_FILE.test(path) ||
+    LOCKFILE.test(path) ||
+    EXAMPLE_FILE.test(path)
   );
 }
 
 export function isGeneratedFile(path: string): boolean {
-  return SKIP_FILE.test(path);
+  return LOCKFILE.test(path) || /\.map$/i.test(path);
 }
 
 export class HttpError extends Error {

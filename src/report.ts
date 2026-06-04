@@ -60,7 +60,7 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 .page-landing .more{animation:riseIn .7s cubic-bezier(.2,.7,.2,1) .5s both}
 .page-landing .bottom{animation:riseIn .7s cubic-bezier(.2,.7,.2,1) .62s both}
 @media (prefers-reduced-motion:reduce){
-  .page-landing .logo,.page-landing .tag,.page-landing .box,.page-landing .hero .sub,.page-landing .more,.page-landing .bottom{animation:none}
+  .page-landing .logobar,.page-landing .tag,.page-landing .box,.page-landing .hero .sub,.page-landing .more,.page-landing .bottom{animation:none}
 }
 .logobar{text-align:center}
 .logo{display:inline-block;font-size:46px;font-weight:800;letter-spacing:-1px;color:var(--text);text-decoration:none;transition:color .2s ease,transform .2s ease}
@@ -209,8 +209,8 @@ const FAQ_LD = JSON.stringify({
   })),
 });
 
-function seoHead(landing: boolean, canonical: string): string {
-  if (!landing) return `<meta name="robots" content="noindex,follow">`;
+function seoHead(index: boolean, canonical: string): string {
+  if (!index) return `<meta name="robots" content="noindex,follow">`;
   return `<meta name="description" content="${escapeHtml(SEO_DESC)}">
 <link rel="canonical" href="${canonical}">
 <meta name="robots" content="index,follow,max-image-preview:large">
@@ -233,11 +233,11 @@ function seoHead(landing: boolean, canonical: string): string {
 <script type="application/ld+json">${FAQ_LD.replace(/</g, "\\u003c")}</script>`;
 }
 
-function shell(inner: string, landing = false, title = "friskit"): string {
+function shell(inner: string, landing = false, title = "friskit", index = false): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(landing && title === "friskit" ? SEO_TITLE : title)}</title>
-${seoHead(landing, `${SITE}/`)}
+<title>${escapeHtml(index && title === "friskit" ? SEO_TITLE : title)}</title>
+${seoHead(index, `${SITE}/`)}
 <link rel="icon" href="${FAVICON}">
 <style>${CSS}</style></head>
 <body><div class="page${landing ? " page-landing" : ""}">
@@ -364,7 +364,7 @@ function openModal(id){var m=document.getElementById(id);if(m){m.classList.add('
 function closeModal(){var o=document.querySelectorAll('.modal.open');for(var i=0;i<o.length;i++)o[i].classList.remove('open');document.body.classList.remove('modal-open');}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
 </script>`;
-  return shell(inner, true);
+  return shell(inner, true, "friskit", true);
 }
 
 export function scanningPage(owner: string, repo: string): string {

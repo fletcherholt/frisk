@@ -14,7 +14,7 @@ interface Rule {
   reject?: RegExp;
 }
 
-const WORDY = /^[a-z]+(?:[._-][a-z]+)+$/;
+const WORDY = /^[a-z]+(?:\.[a-z]+)+$/;
 
 const PLACEHOLDER =
   /example|abcdef|xxx+|0000+|1234567|your[_-]?(?:api|key|token|secret|password)|(?:my|some|the|test|fake|dummy|sample|placeholder|changeme|redacted|insert|replace)[_-]?(?:key|token|secret|password|here)|<[^>]+>|\.\.\.|^(.)\1{6,}$/i;
@@ -84,7 +84,7 @@ export function scanSecretsText(path: string, text: string): Finding[] {
       if (rule.reject && rule.reject.test(probe)) continue;
       if (rule.id !== "private-key" && PLACEHOLDER.test(probe)) continue;
       const line = lineOf(text, m.index);
-      const key = `${rule.id}:${line}`;
+      const key = `${rule.id}:${line}:${probe}`;
       if (seen.has(key)) continue;
       seen.add(key);
       let base = rule.severity;

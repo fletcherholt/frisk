@@ -105,15 +105,13 @@ export function isManifest(path: string): boolean {
 }
 
 export async function queryOsv(collected: Dep[]): Promise<Finding[]> {
-  const seen = new Set<string>();
-  const deps = collected
-    .filter((d) => {
-      const key = `${d.ecosystem}:${d.name}@${d.version}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .slice(0, MAX_QUERIES);
+  const byKey = new Map<string, Dep>();
+  for (const d of collected) {
+    const key = `${d.ecosystem}:${d.name}@${d.version}`;
+    const existing = byKey.get(key);
+    if (!existing || (existing.dev && !d.dev)) byKey.set(key, d);
+  }
+  const deps = [...byKey.values()].slice(0, MAX_QUERIES);
   if (deps.length === 0) return [];
 
   let results: Array<{ vulns?: Array<{ id: string }> }> = [];

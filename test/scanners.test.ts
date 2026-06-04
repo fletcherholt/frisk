@@ -219,3 +219,27 @@ describe("review-pass hardening", () => {
     expect(scanIacText("Dockerfile", 'ENV API_TOKEN=abc123def456ghi\n').some((f) => /baked/i.test(f.title))).toBe(true);
   });
 });
+
+describe("whole-repo sweep fixes (2026-06-04)", () => {
+  it("flags an underscore-separated secret (WORDY now only rejects dotted scope names)", () => {
+    const f = scanSecretsText("config.js", "token = \"s3cret_K3y_R0tation_X9z2\"");
+    expect(f.some((x) => x.title === "Hardcoded credential")).toBe(true);
+    // dotted lowercase scope token still rejected
+    expect(scanSecretsText("t.ts", "token: 'source.php.embedded.line'").some((x) => x.title === "Hardcoded credential")).toBe(false);
+  });
+  it("treats .env.example / *.example as low-signal (dummy key there is not critical)", () => {
+    expect(isLowSignalPath(".env.example")).toBe(true);
+    expect(isLowSignalPath("config/database.yml.sample")).toBe(true);
+    const k = scanSecretsText(".env.example", "-----BEGIN PRIVATE KEY-----\nabc\n");
+    expect(k[0].severity).toBe("medium");
+  });
+  it("only treats real lockfiles as low-signal, not any *.lock", () => {
+    expect(isLowSignalPath("Cargo.lock")).toBe(true);
+    expect(isLowSignalPath("yarn.lock")).toBe(true);
+    expect(isLowSignalPath("data/mutex.lock")).toBe(false);
+  });
+  it("reports two distinct secrets on the same line", () => {
+    const f = scanSecretsText("c.js", "k1=\"AKIAJ7XYZ2LMNOPQ4RST\"; k2=\"AKIAQ9WERTY3UIOPL5KJ\"");
+    expect(f.filter((x) => x.title.includes("AWS access key")).length).toBe(2);
+  });
+});
